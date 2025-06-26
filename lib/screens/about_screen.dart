@@ -85,7 +85,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                 icon: Icons.description_outlined,
                 title: 'README',
                 description: '查看GitHub项目地址与应用说明',
-                onTap: () => _launchUrl('https://github.com/example/miaowang'),
+                onTap: () => _launchUrl('https://github.com/mxrain/miaowang'),
               ),
               
               // 版本发布项
@@ -94,7 +94,7 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                 icon: Icons.new_releases_outlined,
                 title: '版本发布',
                 description: '查看最新版本与更新日记',
-                onTap: () => _launchUrl('https://github.com/example/miaowang/releases'),
+                onTap: () => _launchUrl('https://github.com/mxraincheckForUpdates/miaowang/releases'),
               ),
               
               // 自动更新项

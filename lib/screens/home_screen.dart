@@ -177,7 +177,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     
     // 创建AppBar
     final appBar = AppBar(
-      title: const Text('猫语播放器'),
+      title: const Text('喵王语录'),
       actions: [
         // 清理缓存按钮
         IconButton(
