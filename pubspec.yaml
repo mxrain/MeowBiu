@@ -56,7 +56,12 @@ dependencies:
   dio_cache_interceptor: ^4.0.3
   
   # 文件处理
-  file_picker: ^10.2.0
+  # file_picker: ^7.0.0  # 移除不兼容的库
+  file_selector: ^1.0.3  # 使用Flutter官方推荐的文件选择库
+  
+  # 关于页面所需依赖
+  url_launcher: ^6.2.4
+  package_info_plus: ^8.3.0
 
 dev_dependencies:
   flutter_test:

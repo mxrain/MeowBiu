@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/storage_service.dart';
-import 'screens/home_screen.dart';
+import 'screens/home_screen.dart' as home;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,12 +19,12 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: '猫语播放器',
+      title: '喵喵语录',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const home.HomeScreen(),
       debugShowCheckedModeBanner: false,
     );
   }

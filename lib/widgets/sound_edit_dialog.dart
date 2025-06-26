@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cat_sound.dart';
 import '../providers/sound_provider.dart';
-import '../services/audio_service.dart';
 
 class SoundEditDialog extends ConsumerStatefulWidget {
   final CatSound? sound;
@@ -55,14 +54,18 @@ class _SoundEditDialogState extends ConsumerState<SoundEditDialog> {
   
   Future<void> _pickAudioFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.audio,
-        allowMultiple: false,
+      final XTypeGroup audioGroup = XTypeGroup(
+        label: '音频文件',
+        extensions: ['mp3', 'wav', 'ogg', 'aac', 'm4a'],
       );
       
-      if (result != null && result.files.single.path != null) {
+      final XFile? file = await openFile(
+        acceptedTypeGroups: [audioGroup],
+      );
+      
+      if (file != null) {
         setState(() {
-          _localFilePath = result.files.single.path;
+          _localFilePath = file.path;
         });
       }
     } catch (e) {
