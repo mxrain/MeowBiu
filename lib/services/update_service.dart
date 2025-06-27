@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:open_file/open_file.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/release.dart';
 import '../models/version.dart';
 import 'preference_service.dart';
@@ -17,6 +18,8 @@ class UpdateService {
   static const String _apiUrl = 'https://api.github.com/repos/mxrain/miaowang/releases';
   static final Dio _dio = Dio();
   static CancelToken? _cancelToken;
+  static HttpClient? _httpClient;
+  static bool _isCancelled = false;
 
   /// 检查更新
   /// 
@@ -76,107 +79,153 @@ class UpdateService {
     Function(double)? onProgress,
     Function(String)? onError,
   }) async {
-    if (!release.isDownloadable) {
-      onError?.call('没有可下载的APK文件');
-      return null;
-    }
-
+    debugPrint('===== 开始下载APK流程 =====');
+    _isCancelled = false;
+    
     try {
-      debugPrint('开始下载APK，检查权限...');
-      
-      // 检查并请求存储权限
-      final permissionStatus = await Permission.storage.request();
-      if (!permissionStatus.isGranted) {
-        debugPrint('存储权限未授予: $permissionStatus');
-        onError?.call('需要存储权限才能下载APK文件');
+      // 检查网络状态
+      final connectivity = await Connectivity().checkConnectivity();
+      if (connectivity == ConnectivityResult.none) {
+        debugPrint('无网络连接');
+        onError?.call('请检查您的网络连接');
         return null;
       }
       
-      // 获取适合当前设备的APK
-      final asset = _getBestAssetForDevice(release.assets);
-      if (asset == null) {
-        debugPrint('未找到适合的APK资源');
-        onError?.call('未找到适合当前设备的APK文件');
+      // 选择下载资源
+      final assets = release.assets.where((asset) => asset.isApkFile).toList();
+      if (assets.isEmpty) {
+        debugPrint('未找到可下载的APK');
+        onError?.call('未找到可下载的APK文件');
         return null;
       }
       
-      debugPrint('选择下载: ${asset.name}, URL: ${asset.downloadUrl}');
-      
-      // 创建下载目录
-      final downloadDir = await getExternalStorageDirectory();
-      if (downloadDir == null) {
-        debugPrint('无法获取外部存储目录');
-        onError?.call('无法获取下载目录');
-        return null;
+      debugPrint('可用APK数量: ${assets.length}个');
+      for (var asset in assets) {
+        debugPrint('- ${asset.name} (${asset.size} bytes): ${asset.downloadUrl}');
       }
       
-      // 确保目录存在
-      if (!await downloadDir.exists()) {
-        await downloadDir.create(recursive: true);
-      }
+      // 简化：直接选择第一个APK (不考虑架构)
+      final asset = assets.first;
+      debugPrint('将下载: ${asset.name}, 大小: ${asset.size} 字节, URL: ${asset.downloadUrl}');
       
-      // 创建下载目标路径
-      final filePath = '${downloadDir.path}/${asset.name}';
-      debugPrint('文件将保存至: $filePath');
+      // 获取应用私有目录（不需要存储权限）
+      final appDir = await getApplicationDocumentsDirectory();
+      final filePath = '${appDir.path}/${asset.name}';
+      debugPrint('下载路径: $filePath');
+      
+      // 准备文件
       final file = File(filePath);
-      
-      // 如果文件已存在，先删除
       if (await file.exists()) {
+        debugPrint('删除已存在的文件');
         await file.delete();
       }
       
-      // 创建取消令牌
-      _cancelToken = CancelToken();
+      // 创建HttpClient
+      _httpClient = HttpClient();
+      _httpClient!.connectionTimeout = const Duration(seconds: 30);
       
-      // 设置Dio选项
-      final options = BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 30),
-        responseType: ResponseType.bytes,
-      );
+      debugPrint('使用HttpClient下载文件');
+      final request = await _httpClient!.getUrl(Uri.parse(asset.downloadUrl));
       
-      final dio = Dio(options);
+      // 设置请求头
+      request.headers.add('Accept', '*/*');
+      request.headers.add('User-Agent', 'MiaoWang-App/1.0');
       
-      // 下载文件
-      debugPrint('开始下载...');
-      final response = await dio.download(
-        asset.downloadUrl,
-        filePath,
-        cancelToken: _cancelToken,
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            final progress = received / total;
-            debugPrint('下载进度: ${(progress * 100).toStringAsFixed(1)}%');
+      debugPrint('发送HTTP请求...');
+      final response = await request.close();
+      
+      // 检查响应状态
+      debugPrint('HTTP响应状态: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        debugPrint('HTTP请求失败: ${response.statusCode}, ${response.reasonPhrase}');
+        onError?.call('服务器响应错误: ${response.statusCode}');
+        return null;
+      }
+      
+      // 获取总大小
+      final totalBytes = response.contentLength;
+      debugPrint('开始接收数据，总大小: $totalBytes 字节');
+      
+      // 创建文件并写入
+      final sink = file.openWrite();
+      var receivedBytes = 0;
+      
+      // 接收数据
+      final completer = Completer<String?>();
+      
+      response.listen(
+        (bytes) {
+          if (_isCancelled) {
+            sink.close();
+            _httpClient?.close();
+            _httpClient = null;
+            completer.complete(null);
+            return;
+          }
+          
+          sink.add(bytes);
+          receivedBytes += bytes.length;
+          
+          // 报告进度
+          if (totalBytes > 0) {
+            final progress = receivedBytes / totalBytes;
+            debugPrint('已接收: $receivedBytes / $totalBytes (${(progress * 100).toStringAsFixed(1)}%)');
             onProgress?.call(progress);
           }
         },
+        onDone: () async {
+          // 关闭资源
+          await sink.flush();
+          await sink.close();
+          _httpClient?.close();
+          _httpClient = null;
+          
+          // 检查文件大小
+          final fileInfo = await file.stat();
+          debugPrint('下载完成，文件大小: ${fileInfo.size}字节');
+          
+          if (fileInfo.size == 0) {
+            debugPrint('错误：下载的文件大小为0');
+            onError?.call('下载文件失败：文件大小为0');
+            completer.complete(null);
+          } else {
+            completer.complete(filePath);
+          }
+        },
+        onError: (error) {
+          debugPrint('下载过程出错: $error');
+          sink.close();
+          _httpClient?.close();
+          _httpClient = null;
+          onError?.call('下载过程出错: $error');
+          completer.complete(null);
+        },
+        cancelOnError: true,
       );
       
-      // 验证文件是否存在
-      final exists = await file.exists();
-      debugPrint('下载完成，文件${exists ? "已存在" : "不存在"}');
-      return exists ? filePath : null;
-    } catch (e) {
-      if (e is DioException) {
-        debugPrint('Dio下载异常: ${e.type}, ${e.message}, ${e.response}');
-        if (e.type == DioExceptionType.cancel) {
-          onError?.call('下载已取消');
-        } else {
-          onError?.call('网络错误: ${e.message}');
-        }
-      } else {
-        debugPrint('下载APK异常: $e');
-        onError?.call('下载APK失败: $e');
-      }
+      return await completer.future;
+    } catch (e, stackTrace) {
+      // 详细的错误日志
+      debugPrint('下载过程中发生异常: $e');
+      debugPrint('===== 堆栈跟踪 =====');
+      debugPrint('$stackTrace');
+      
+      onError?.call('下载失败: ${e.toString()}');
       return null;
     }
   }
 
   /// 取消当前下载
   static void cancelDownload() {
+    debugPrint('取消下载请求');
+    _isCancelled = true;
     _cancelToken?.cancel('用户取消下载');
     _cancelToken = null;
+    
+    if (_httpClient != null) {
+      _httpClient!.close(force: true);
+      _httpClient = null;
+    }
   }
 
   /// 安装APK
@@ -194,6 +243,9 @@ class UpdateService {
           debugPrint('安装失败：APK文件不存在');
           return false;
         }
+        
+        final fileSize = await file.length();
+        debugPrint('APK文件大小: $fileSize 字节');
         
         // 请求安装未知来源应用权限（Android 8.0+需要）
         final status = await Permission.requestInstallPackages.status;
@@ -224,8 +276,9 @@ class UpdateService {
       }
       
       return false;
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('安装APK异常: $e');
+      debugPrint('异常堆栈: $stackTrace');
       return false;
     }
   }

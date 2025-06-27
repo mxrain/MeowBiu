@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -192,9 +193,46 @@ class _UpdateDialogState extends State<UpdateDialog> {
             
             // 错误信息
             if (_error != null) ...[
-              Text(
-                _error!,
-                style: TextStyle(color: colorScheme.error),
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(8.0),
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.error_outline, color: colorScheme.error, size: 18),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '下载遇到问题:',
+                            style: TextStyle(
+                              color: colorScheme.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _error!,
+                      style: TextStyle(color: colorScheme.error),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '您可以使用浏览器直接下载更新',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
             ],
@@ -220,6 +258,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 ),
               ),
             ],
+            
+            // 添加调试信息（仅在开发环境显示）
+            if (kDebugMode && _error != null) ...[
+              const Divider(),
+              const Text('调试信息:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(_error!, style: TextStyle(fontFamily: 'monospace', fontSize: 12)),
+            ],
           ],
         ),
       ),
@@ -235,11 +280,26 @@ class _UpdateDialogState extends State<UpdateDialog> {
           child: Text(_isDownloading ? '取消下载' : '稍后更新'),
         ),
         
-        // 查看详情按钮
-        TextButton(
-          onPressed: _openReleasePage,
-          child: const Text('查看详情'),
-        ),
+        // 错误后显示浏览器下载按钮
+        if (_error != null) ...[
+          TextButton.icon(
+            icon: const Icon(Icons.open_in_browser),
+            label: const Text('浏览器下载'),
+            onPressed: () async {
+              final url = 'https://github.com/mxrain/miaowang/releases/tag/${widget.release.tagName}';
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+        ] else ...[
+          // 查看详情按钮
+          TextButton(
+            onPressed: _openReleasePage,
+            child: const Text('查看详情'),
+          ),
+        ],
         
         // 更新按钮
         if (!_isDownloading && !_isInstalling) ...[
