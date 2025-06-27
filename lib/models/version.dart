@@ -4,8 +4,9 @@ class Version implements Comparable<Version> {
   final int minor;
   final int patch;
   final String? preRelease;
+  final int? buildNumber;  // 添加构建号
 
-  const Version(this.major, this.minor, this.patch, [this.preRelease]);
+  const Version(this.major, this.minor, this.patch, [this.preRelease, this.buildNumber]);
 
   /// 从字符串解析版本号
   static Version parse(String versionString) {
@@ -14,9 +15,16 @@ class Version implements Comparable<Version> {
       versionString = versionString.substring(1);
     }
 
-    // 处理Flutter版本号格式（如1.2.3+4，移除构建号部分）
+    // 处理Flutter版本号格式（如1.2.3+4，提取构建号部分）
+    int? buildNumber;
     if (versionString.contains('+')) {
-      versionString = versionString.split('+')[0];
+      final parts = versionString.split('+');
+      versionString = parts[0];
+      try {
+        buildNumber = int.parse(parts[1]);
+      } catch (e) {
+        // 忽略构建号解析错误
+      }
     }
 
     // 分离预发布部分
@@ -38,7 +46,7 @@ class Version implements Comparable<Version> {
       final minor = int.parse(parts[1]);
       final patch = int.parse(parts[2]);
 
-      return Version(major, minor, patch, preRelease);
+      return Version(major, minor, patch, preRelease, buildNumber);
     } catch (e) {
       throw FormatException('Failed to parse version: $versionString');
     }
@@ -65,10 +73,21 @@ class Version implements Comparable<Version> {
     // 没有预发布标识的版本高于有预发布标识的版本
     if (preRelease == null && other.preRelease != null) return 1;
     if (preRelease != null && other.preRelease == null) return -1;
-    if (preRelease == null && other.preRelease == null) return 0;
+    if (preRelease != null && other.preRelease != null) {
+      result = preRelease!.compareTo(other.preRelease!);
+      if (result != 0) return result;
+    }
 
-    // 预发布版本的比较规则（按字母顺序）
-    return preRelease!.compareTo(other.preRelease!);
+    // 如果语义版本相同，比较构建号（如果有）
+    if (buildNumber != null && other.buildNumber != null) {
+      return buildNumber!.compareTo(other.buildNumber!);
+    } else if (buildNumber != null) {
+      return 1;  // 有构建号的版本高于没有构建号的版本
+    } else if (other.buildNumber != null) {
+      return -1;  // 没有构建号的版本低于有构建号的版本
+    }
+    
+    return 0;  // 完全相同
   }
 
   @override
@@ -79,16 +98,19 @@ class Version implements Comparable<Version> {
     return major == other.major &&
         minor == other.minor &&
         patch == other.patch &&
-        preRelease == other.preRelease;
+        preRelease == other.preRelease &&
+        buildNumber == other.buildNumber;
   }
 
   @override
-  int get hashCode => Object.hash(major, minor, patch, preRelease);
+  int get hashCode => Object.hash(major, minor, patch, preRelease, buildNumber);
 
   @override
   String toString() {
     final version = '$major.$minor.$patch';
-    return preRelease == null ? version : '$version-$preRelease';
+    final preReleaseStr = preRelease == null ? '' : '-$preRelease';
+    final buildNumberStr = buildNumber == null ? '' : '+$buildNumber';
+    return '$version$preReleaseStr$buildNumberStr';
   }
 
   /// 创建完整版本号字符串（包含v前缀）

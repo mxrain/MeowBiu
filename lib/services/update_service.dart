@@ -34,8 +34,9 @@ class UpdateService {
       
       // 获取当前版本
       final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = Version.parse(packageInfo.version);
-      debugPrint('当前版本: $currentVersion (${packageInfo.version})');
+      final currentVersionStr = packageInfo.version.split('+')[0]; // 移除构建号部分
+      final currentVersion = Version.parse(currentVersionStr);
+      debugPrint('当前版本: $currentVersion (原始版本: ${packageInfo.version}, 构建号: ${packageInfo.buildNumber})');
       
       // 获取远程发布列表
       debugPrint('正在从GitHub获取发布信息...');
@@ -278,6 +279,11 @@ class UpdateService {
           }
         }
         
+        // 获取包信息，用于日志
+        final packageInfo = await PackageInfo.fromPlatform();
+        debugPrint('当前应用信息: 版本=${packageInfo.version}, 构建号=${packageInfo.buildNumber}');
+        
+        // 使用OpenFile打开APK进行安装
         debugPrint('准备打开APK文件进行安装');
         final result = await OpenFile.open(filePath);
         debugPrint('打开APK结果: ${result.type}, ${result.message}');

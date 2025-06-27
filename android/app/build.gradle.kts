@@ -26,8 +26,11 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
+        versionCode = (flutter.versionCode ?: 1).toInt()
         versionName = flutter.versionName
+        
+        // 打印版本信息用于调试
+        println("构建应用: versionName=${versionName}, versionCode=${versionCode}")
     }
 
     buildTypes {

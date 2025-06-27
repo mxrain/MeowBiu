@@ -5,6 +5,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/release.dart';
 import '../services/update_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// 更新对话框，显示新版本信息并提供下载安装功能
 class UpdateDialog extends StatefulWidget {
@@ -153,6 +154,26 @@ class _UpdateDialogState extends State<UpdateDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 当前版本和新版本信息
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final currentVersion = snapshot.data!.version;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      '当前版本: $currentVersion → 新版本: $version',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            
             // 更新时间
             Row(
               children: [
