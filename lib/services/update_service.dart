@@ -30,38 +30,56 @@ class UpdateService {
       final prefService = PreferenceService();
       await prefService.init();
       final updateChannel = prefService.getUpdateChannel();
+      debugPrint('更新频道: ${updateChannel == UpdateChannel.stable ? "稳定版" : "预览版"}');
       
       // 获取当前版本
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = Version.parse(packageInfo.version);
+      debugPrint('当前版本: $currentVersion (${packageInfo.version})');
       
       // 获取远程发布列表
+      debugPrint('正在从GitHub获取发布信息...');
       final response = await http.get(Uri.parse(_apiUrl));
       if (response.statusCode != 200) {
         throw Exception('获取发布信息失败: ${response.statusCode}');
       }
+      debugPrint('成功获取发布信息，状态码: ${response.statusCode}');
       
       // 解析发布列表
       final releases = Release.parseReleases(response.body);
+      debugPrint('共获取到 ${releases.length} 个发布版本');
+      
+      // 输出所有版本
+      for (var i = 0; i < releases.length; i++) {
+        debugPrint('发布[$i]: ${releases[i].tagName} (预发布: ${releases[i].preRelease})');
+      }
       
       // 根据更新频道筛选
       final filteredReleases = updateChannel == UpdateChannel.stable
           ? releases.where((r) => !r.preRelease).toList()
           : releases;
+      debugPrint('筛选后还剩 ${filteredReleases.length} 个版本');
       
       // 找到最新版本
       if (filteredReleases.isEmpty) return null;
       final latestRelease = filteredReleases.first;
+      debugPrint('最新版本: ${latestRelease.tagName} (${latestRelease.name})');
       
       // 解析版本号并比较
-      final latestVersion = Version.parse(
-          latestRelease.tagName.replaceFirst('v', ''));
+      final latestVersionStr = latestRelease.tagName.replaceFirst('v', '');
+      debugPrint('尝试解析版本号: $latestVersionStr');
+      final latestVersion = Version.parse(latestVersionStr);
+      debugPrint('解析结果: $latestVersion');
+      
+      // 版本比较
+      final comparisonResult = currentVersion.compareTo(latestVersion);
+      debugPrint('版本比较结果: $comparisonResult (负数表示有新版本，0表示相同，正数表示本地版本更高)');
       
       // 记录检查时间
       await prefService.setLastCheckUpdateTime(DateTime.now());
       
       // 只有当新版本大于当前版本时才返回
-      return currentVersion.compareTo(latestVersion) < 0 ? latestRelease : null;
+      return comparisonResult < 0 ? latestRelease : null;
     } catch (e) {
       debugPrint('检查更新失败: $e');
       return null;

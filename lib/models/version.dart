@@ -14,6 +14,11 @@ class Version implements Comparable<Version> {
       versionString = versionString.substring(1);
     }
 
+    // 处理Flutter版本号格式（如1.2.3+4，移除构建号部分）
+    if (versionString.contains('+')) {
+      versionString = versionString.split('+')[0];
+    }
+
     // 分离预发布部分
     String? preRelease;
     if (versionString.contains('-')) {
@@ -88,4 +93,4 @@ class Version implements Comparable<Version> {
 
   /// 创建完整版本号字符串（包含v前缀）
   String toFullString() => 'v${toString()}';
-} 
+}
