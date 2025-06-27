@@ -82,9 +82,12 @@ class UpdateService {
     }
 
     try {
+      debugPrint('开始下载APK，检查权限...');
+      
       // 检查并请求存储权限
       final permissionStatus = await Permission.storage.request();
       if (!permissionStatus.isGranted) {
+        debugPrint('存储权限未授予: $permissionStatus');
         onError?.call('需要存储权限才能下载APK文件');
         return null;
       }
@@ -92,42 +95,78 @@ class UpdateService {
       // 获取适合当前设备的APK
       final asset = _getBestAssetForDevice(release.assets);
       if (asset == null) {
+        debugPrint('未找到适合的APK资源');
         onError?.call('未找到适合当前设备的APK文件');
         return null;
       }
       
+      debugPrint('选择下载: ${asset.name}, URL: ${asset.downloadUrl}');
+      
       // 创建下载目录
       final downloadDir = await getExternalStorageDirectory();
       if (downloadDir == null) {
+        debugPrint('无法获取外部存储目录');
         onError?.call('无法获取下载目录');
         return null;
       }
       
+      // 确保目录存在
+      if (!await downloadDir.exists()) {
+        await downloadDir.create(recursive: true);
+      }
+      
       // 创建下载目标路径
       final filePath = '${downloadDir.path}/${asset.name}';
+      debugPrint('文件将保存至: $filePath');
       final file = File(filePath);
+      
+      // 如果文件已存在，先删除
+      if (await file.exists()) {
+        await file.delete();
+      }
       
       // 创建取消令牌
       _cancelToken = CancelToken();
       
+      // 设置Dio选项
+      final options = BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
+        responseType: ResponseType.bytes,
+      );
+      
+      final dio = Dio(options);
+      
       // 下载文件
-      await _dio.download(
+      debugPrint('开始下载...');
+      final response = await dio.download(
         asset.downloadUrl,
         filePath,
         cancelToken: _cancelToken,
         onReceiveProgress: (received, total) {
           if (total != -1) {
             final progress = received / total;
+            debugPrint('下载进度: ${(progress * 100).toStringAsFixed(1)}%');
             onProgress?.call(progress);
           }
         },
       );
       
-      return file.existsSync() ? filePath : null;
+      // 验证文件是否存在
+      final exists = await file.exists();
+      debugPrint('下载完成，文件${exists ? "已存在" : "不存在"}');
+      return exists ? filePath : null;
     } catch (e) {
-      if (e is DioException && e.type == DioExceptionType.cancel) {
-        onError?.call('下载已取消');
+      if (e is DioException) {
+        debugPrint('Dio下载异常: ${e.type}, ${e.message}, ${e.response}');
+        if (e.type == DioExceptionType.cancel) {
+          onError?.call('下载已取消');
+        } else {
+          onError?.call('网络错误: ${e.message}');
+        }
       } else {
+        debugPrint('下载APK异常: $e');
         onError?.call('下载APK失败: $e');
       }
       return null;
@@ -146,16 +185,33 @@ class UpdateService {
   /// 返回是否成功调用安装程序
   static Future<bool> installApk(String filePath) async {
     try {
+      debugPrint('准备安装APK: $filePath');
       // Android安装APK
       if (Platform.isAndroid) {
-        // 请求安装未知来源应用权限（Android 8.0+需要）
-        if (await Permission.requestInstallPackages.request().isGranted) {
-          final result = await OpenFile.open(filePath);
-          return result.type == ResultType.done;
-        } else {
-          debugPrint('没有安装权限');
+        // 检查文件是否存在
+        final file = File(filePath);
+        if (!await file.exists()) {
+          debugPrint('安装失败：APK文件不存在');
           return false;
         }
+        
+        // 请求安装未知来源应用权限（Android 8.0+需要）
+        final status = await Permission.requestInstallPackages.status;
+        debugPrint('安装权限状态: $status');
+        
+        if (!status.isGranted) {
+          final result = await Permission.requestInstallPackages.request();
+          debugPrint('请求安装权限结果: $result');
+          if (!result.isGranted) {
+            debugPrint('安装权限被拒绝');
+            return false;
+          }
+        }
+        
+        debugPrint('准备打开APK文件进行安装');
+        final result = await OpenFile.open(filePath);
+        debugPrint('打开APK结果: ${result.type}, ${result.message}');
+        return result.type == ResultType.done;
       } 
       // iOS跳转到App Store
       else if (Platform.isIOS) {
@@ -169,7 +225,7 @@ class UpdateService {
       
       return false;
     } catch (e) {
-      debugPrint('安装APK失败: $e');
+      debugPrint('安装APK异常: $e');
       return false;
     }
   }

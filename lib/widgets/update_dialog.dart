@@ -91,10 +91,38 @@ class _UpdateDialogState extends State<UpdateDialog> {
   }
 
   void _openReleasePage() async {
-    final url = 'https://github.com/mxrain/miaowang/releases/tag/${widget.release.tagName}';
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final url = 'https://github.com/mxrain/miaowang/releases/tag/${widget.release.tagName}';
+      final uri = Uri.parse(url);
+      
+      // 添加日志输出
+      debugPrint('尝试打开URL: $url');
+      
+      final canLaunch = await canLaunchUrl(uri);
+      debugPrint('canLaunchUrl结果: $canLaunch');
+      
+      if (canLaunch) {
+        final result = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        debugPrint('launchUrl结果: $result');
+        if (!result && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法打开链接，请手动访问GitHub查看详情')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('无法打开浏览器')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('打开链接出错: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('打开链接出错: $e')),
+        );
+      }
     }
   }
 
