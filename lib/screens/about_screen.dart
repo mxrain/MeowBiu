@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/preference_service.dart';
+import '../screens/update_page.dart';
 
 /// 关于页面
 class AboutScreen extends ConsumerStatefulWidget {
@@ -21,17 +23,42 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
   );
 
   bool _autoUpdateEnabled = true;
+  bool _updateSupported = true;
 
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
+    _loadUpdatePreferences();
   }
 
   Future<void> _loadPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
     setState(() {
       _packageInfo = info;
+    });
+  }
+
+  Future<void> _loadUpdatePreferences() async {
+    final prefService = PreferenceService();
+    await prefService.init();
+    
+    final enabled = prefService.isAutoUpdateEnabled();
+    final supported = await prefService.isAutoUpdateSupported();
+    
+    setState(() {
+      _autoUpdateEnabled = enabled;
+      _updateSupported = supported;
+    });
+  }
+
+  Future<void> _setAutoUpdateEnabled(bool value) async {
+    final prefService = PreferenceService();
+    await prefService.init();
+    await prefService.setAutoUpdateEnabled(value);
+    
+    setState(() {
+      _autoUpdateEnabled = value;
     });
   }
 
@@ -55,6 +82,13 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
         );
       }
     }
+  }
+
+  void _navigateToUpdatePage() {
+    Navigator.push(
+      context, 
+      MaterialPageRoute(builder: (context) => const UpdatePage()),
+    );
   }
 
   @override
@@ -94,32 +128,26 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                 icon: Icons.new_releases_outlined,
                 title: '版本发布',
                 description: '查看最新版本与更新日记',
-                onTap: () => _launchUrl('https://github.com/mxraincheckForUpdates/miaowang/releases'),
+                onTap: () => _launchUrl('https://github.com/mxrain/miaowang/releases'),
               ),
               
               // 自动更新项
               _buildListItem(
                 context,
-                icon: _autoUpdateEnabled
+                icon: _autoUpdateEnabled && _updateSupported
                     ? Icons.update_outlined
                     : Icons.update_disabled_outlined,
                 title: '自动更新',
-                description: '检查更新',
+                description: _updateSupported 
+                    ? '检查并下载应用更新'
+                    : '当前版本不支持自动更新',
                 trailing: Switch(
-                  value: _autoUpdateEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _autoUpdateEnabled = value;
-                    });
-                    // TODO: 在实际实现中保存设置
-                  },
+                  value: _autoUpdateEnabled && _updateSupported,
+                  onChanged: _updateSupported
+                    ? (value) => _setAutoUpdateEnabled(value)
+                    : null,
                 ),
-                onTap: () {
-                  // TODO: 导航到更新详情页面
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('导航到更新详情页面')),
-                  );
-                },
+                onTap: _navigateToUpdatePage,
               ),
               
               // 版本信息项
