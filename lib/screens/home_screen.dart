@@ -9,6 +9,7 @@ import '../widgets/cat_sound_button.dart';
 import '../widgets/sound_edit_dialog.dart';
 import '../widgets/category_edit_dialog.dart';
 import 'about_screen.dart';
+import 'storage_settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -81,6 +82,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       context: context,
       builder: (context) => CategoryEditDialog(category: category),
     );
+  }
+  
+  // 复制分类
+  Future<void> _copyCategory(SoundCategory category) async {
+    // 创建一个新的分类名称，格式为"原名称 副本"
+    final newCategoryName = '${category.name} 副本';
+    
+    // 创建新分类并获取ID
+    final newCategory = await ref.read(soundManagerProvider.notifier).addCategory(newCategoryName);
+    
+    if (newCategory != null) {
+      // 获取原分类下的所有音频
+      final sounds = await ref.watch(categorySoundsProvider(category.id).future);
+      
+      // 复制每个音频到新分类
+      for (final sound in sounds) {
+        await ref.read(soundManagerProvider.notifier).addSound(
+          name: sound.name,
+          audioPath: sound.audioPath,
+          sourceType: sound.sourceType,
+          categoryId: newCategory.id,
+        );
+      }
+      
+      // 显示成功提示
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('分类"${category.name}"复制成功')),
+        );
+      }
+    }
   }
   
   // 删除分类
@@ -177,41 +209,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     
     // 创建AppBar
     final appBar = AppBar(
-      title: const Text('喵王语录'),
+      title: const Text('音频'),
       actions: [
-        // 清理缓存按钮
-        IconButton(
-          icon: const Icon(Icons.cleaning_services),
-          tooltip: '清理所有缓存',
-          onPressed: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('清理缓存'),
-                content: const Text('确定要清理所有音频缓存吗？这可能会影响离线播放。'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('取消'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('清理'),
-                  ),
-                ],
-              ),
-            );
-            
-            if (confirmed == true) {
-              final result = await ref.read(soundManagerProvider.notifier).clearAllCache();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(result ? '缓存清理成功' : '缓存清理失败')),
-                );
-              }
-            }
-          },
-        ),
         // 设置按钮
         IconButton(
           icon: const Icon(Icons.settings_outlined),
@@ -242,13 +241,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
             children: [
               // 顶部Tab栏和添加分类按钮
               Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: Theme.of(context).dividerColor,
-                      width: 1.0,
-                    ),
-                  ),
+                decoration: const BoxDecoration(
+                  // 去除下边框线
+                  border: Border(),
                 ),
                 child: Stack(
                   alignment: Alignment.centerRight,
@@ -257,32 +252,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                     TabBar(
                       isScrollable: true,
                       tabAlignment: TabAlignment.start,
+                      // 自定义下划线指示器
+                      indicator: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      dividerColor: Colors.transparent,  // 移除底部分割线
+                      labelColor: Theme.of(context).colorScheme.primary,
+                      unselectedLabelColor: Theme.of(context).colorScheme.onSurface,
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 4), // 减小Tab之间的间距
+                      indicatorSize: TabBarIndicatorSize.label,
+                      // 禁用触摸反馈效果
+                      splashFactory: NoSplash.splashFactory,
+                      overlayColor: MaterialStateProperty.all(Colors.transparent),
                       tabs: categories.map((category) {
                         return Tab(
                           child: GestureDetector(
                             onLongPress: () {
-                              showModalBottomSheet(
+                              // 从屏幕中央弹出菜单
+                              showDialog(
                                 context: context,
-                                builder: (context) => Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      leading: const Icon(Icons.edit),
-                                      title: const Text('重命名'),
-                                      onTap: () {
-                                        Navigator.of(context).pop();
-                                        _showEditCategoryDialog(category);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.delete, color: Colors.red),
-                                      title: const Text('删除', style: TextStyle(color: Colors.red)),
-                                      onTap: () {
-                                        Navigator.of(context).pop();
-                                        _deleteCategory(category);
-                                      },
-                                    ),
-                                  ],
+                                builder: (context) => AlertDialog(
+                                  title: const Text('分类操作'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.edit),
+                                        title: const Text('重命名分类'),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          _showEditCategoryDialog(category);
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.copy),
+                                        title: const Text('复制分类'),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          _copyCategory(category);
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.delete, color: Colors.red),
+                                        title: const Text('删除分类', style: TextStyle(color: Colors.red)),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          _deleteCategory(category);
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },
@@ -500,14 +520,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         context,
         MaterialPageRoute(builder: (context) => const AboutScreen()),
       );
+    } else if (route == '/storage-settings') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const StorageSettingsScreen()),
+      );
     } else {
       // 其他路由暂时只显示一个SnackBar提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('导航到: $route'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('导航到: $route'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
     }
   }
 }
@@ -528,98 +553,143 @@ class CategorySoundsGrid extends ConsumerWidget {
     required this.onClearCache,
   }) : super(key: key);
   
+  // 复制音频功能
+  Future<void> _copySoundItem(BuildContext context, WidgetRef ref, CatSound sound) async {
+    // 创建新的音频名称
+    final newSoundName = '${sound.name}(副本)';
+    
+    // 添加复制后的音频
+    final newSound = await ref.read(soundManagerProvider.notifier).addSound(
+      name: newSoundName,
+      audioPath: sound.audioPath,
+      sourceType: sound.sourceType,
+      categoryId: categoryId,
+    );
+    
+    if (newSound != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('音频"${sound.name}"复制成功')),
+      );
+    }
+  }
+  
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final soundsAsync = ref.watch(categorySoundsProvider(categoryId));
     
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
       child: soundsAsync.when(
         data: (sounds) {
-          // 根据设备方向确定列数
-          final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-          final crossAxisCount = isLandscape ? 4 : 3;
-          
           return Stack(
+            alignment: Alignment.bottomCenter,
             children: [
-              // 即使没有猫声也显示网格，这样能始终添加新的猫声
-              MasonryGridView.count(
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                itemCount: sounds.isEmpty ? 0 : sounds.length,
-                itemBuilder: (context, index) {
-                  final sound = sounds[index];
-                  return GestureDetector(
-                    onLongPress: () {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (context) => Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.edit),
-                              title: const Text('编辑'),
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                onEditSound(sound);
-                              },
+              // 音频列表区域 - 更紧凑的设计
+              Positioned.fill(
+                bottom: 60, // 为底部添加按钮留出空间
+                child: sounds.isEmpty
+                    ? const SizedBox() // 如果没有音频，不显示列表
+                    : ListView.separated(
+                        itemCount: sounds.length,
+                        // 使用极细分隔线
+                        separatorBuilder: (context, index) => const Divider(height: 1, thickness: 0.2),
+                        itemBuilder: (context, index) {
+                          final sound = sounds[index];
+                          return GestureDetector(
+                            onLongPress: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('音频操作'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.edit),
+                                        title: const Text('编辑'),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          onEditSound(sound);
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.copy),
+                                        title: const Text('复制'),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          _copySoundItem(context, ref, sound);
+                                        },
+                                      ),
+                                      if (sound.isNetworkSource && sound.isCached)
+                                        ListTile(
+                                          leading: const Icon(Icons.cleaning_services),
+                                          title: const Text('清理缓存'),
+                                          onTap: () {
+                                            Navigator.of(context).pop();
+                                            onClearCache(sound);
+                                          },
+                                        ),
+                                      ListTile(
+                                        leading: const Icon(Icons.delete, color: Colors.red),
+                                        title: const Text('删除', style: TextStyle(color: Colors.red)),
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          onDeleteSound(sound);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: CatSoundButton(
+                              sound: sound,
                             ),
-                            if (sound.isNetworkSource && sound.isCached)
-                              ListTile(
-                                leading: const Icon(Icons.cleaning_services),
-                                title: const Text('清理缓存'),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  onClearCache(sound);
-                                },
-                              ),
-                            ListTile(
-                              leading: const Icon(Icons.delete, color: Colors.red),
-                              title: const Text('删除', style: TextStyle(color: Colors.red)),
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                onDeleteSound(sound);
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    child: CatSoundButton(
-                      sound: sound,
-                    ),
-                  );
-                },
+                          );
+                        },
+                      ),
               ),
               
-              // 空状态提示
+              // 空状态提示 - 添加动画效果
               if (sounds.isEmpty)
                 Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('暂无猫声，点击下方按钮添加'),
+                      const Text('暂无音频，点击添加'),
                       const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: onAddSound,
-                        icon: const Icon(Icons.add),
-                        label: const Text('添加猫声'),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 1.0, end: 1.1),
+                        duration: const Duration(seconds: 2),
+                        curve: Curves.elasticInOut,
+                        builder: (context, value, child) {
+                          return Transform.scale(
+                            scale: value,
+                            child: ElevatedButton.icon(
+                              onPressed: onAddSound,
+                              icon: const Icon(Icons.add),
+                              label: const Text('添加音频'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
               
-              // 添加按钮始终在右下角
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: FloatingActionButton(
-                  onPressed: onAddSound,
-                  mini: true,
-                  child: const Icon(Icons.add),
+              // 添加按钮移至底部中央
+              if (sounds.isNotEmpty)
+                Positioned(
+                  bottom: 16,
+                  child: FloatingActionButton.extended(
+                    onPressed: onAddSound,
+                    icon: const Icon(Icons.add),
+                    label: const Text('添加音频'),
+                  ),
                 ),
-              ),
             ],
           );
         },
