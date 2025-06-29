@@ -6,9 +6,9 @@
   
   <!-- 浅绿色聊天气泡主体（激活状态） -->
   <g filter="url(#shadow)">
-    <rect x="20" y="10" width="240" height="80" rx="12" ry="12" fill="#E8F5E9" />
+    <rect x="35" y="10" width="220" height="80" rx="12" ry="12" fill="#E8F5E9" />
     
-    <!-- 右侧指向三角形（颜色同步修改） -->
-    <polygon points="260,50 275,40 275,60" fill="#E8F5E9" />
+    <!-- 左侧指向三角形（颜色同步修改） -->
+    <polygon points="20,50 35,40 35,60" fill="#E8F5E9" />
   </g>
 </svg>

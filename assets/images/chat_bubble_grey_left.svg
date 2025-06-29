@@ -9,6 +9,6 @@
     <rect x="35" y="10" width="220" height="80" rx="12" ry="12" fill="#F0F0F0" />
     
     <!-- 左侧指向三角形 -->
-    <polygon points="35,50 20,40 20,60" fill="#F0F0F0" />
+    <polygon points="20,50 35,40 35,60" fill="#F0F0F0" />
   </g>
 </svg>

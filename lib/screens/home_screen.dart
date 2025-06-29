@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/cat_sound.dart';
 import '../models/sound_category.dart';
 import '../providers/sound_provider.dart';
-import '../widgets/cat_sound_button.dart';
+import '../widgets/category_selector.dart';
+import '../widgets/chat_sounds_list.dart';
 import '../widgets/sound_edit_dialog.dart';
 import '../widgets/category_edit_dialog.dart';
 import 'about_screen.dart';
@@ -18,39 +19,9 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin {
-  TabController? _tabController;
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
-  @override
-  void dispose() {
-    _tabController?.dispose();
-    super.dispose();
-  }
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final categoriesAsync = ref.watch(categoriesProvider);
-    categoriesAsync.whenData((categories) {
-      if (categories.isEmpty) return;
-      
-      // 如果Tab控制器尚未初始化，或者分类数量变化，重新创建控制器
-      if (_tabController == null || _tabController!.length != categories.length) {
-        _tabController?.dispose();
-        _tabController = TabController(
-          length: categories.length,
-          vsync: this,
-        );
-        
-        // 确保选中的分类是有效的
-        final selectedCategory = ref.read(selectedCategoryProvider);
-        if (selectedCategory == null || !categories.any((c) => c.id == selectedCategory)) {
-          ref.read(selectedCategoryProvider.notifier).state = categories.first.id;
-        }
-      }
-    });
-  }
+  int _currentNavIndex = 0; // 当前选中的底部导航索引
   
   // 显示添加猫声对话框
   Future<void> _showAddSoundDialog(String categoryId) async {
@@ -203,17 +174,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     }
   }
   
+  // 复制音频
+  Future<void> _copySoundItem(CatSound sound) async {
+    // 创建新的音频名称
+    final newSoundName = '${sound.name}(副本)';
+    
+    // 获取当前分类ID
+    final String? currentCategoryId = ref.read(selectedCategoryProvider);
+    
+    // 添加复制后的音频
+    final newSound = await ref.read(soundManagerProvider.notifier).addSound(
+      name: newSoundName,
+      audioPath: sound.audioPath,
+      sourceType: sound.sourceType,
+      categoryId: currentCategoryId,
+    );
+    
+    if (newSound != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('音频"${sound.name}"复制成功')),
+      );
+    }
+  }
+  
+  // 处理分类长按事件
+  void _handleCategoryLongPress(SoundCategory category) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('重命名分类'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showEditCategoryDialog(category);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('复制分类'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _copyCategory(category);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('删除分类', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.of(context).pop();
+                _deleteCategory(category);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final selectedCategory = ref.watch(selectedCategoryProvider);
     
-    // 创建AppBar
+    // 创建AppBar - 聊天风格的顶部栏
     final appBar = AppBar(
-      title: const Text('音频'),
+      title: const Text('猫语', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
+      centerTitle: true,
       actions: [
         // 设置按钮
         IconButton(
-          icon: const Icon(Icons.settings_outlined),
+          icon: SvgPicture.asset(
+            'assets/images/icon_settings_gear.svg',
+            height: 32,
+            colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
+          ),
           tooltip: '设置',
           onPressed: () {
             // 添加轻微触觉反馈
@@ -229,125 +268,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     final bodyContent = categoriesAsync.when(
       data: (categories) {
         if (categories.isEmpty) {
-          return const Center(
-            child: Text('暂无分类，请先添加分类'),
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('暂无分类，请先添加分类'),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _showAddCategoryDialog,
+                  icon: const Icon(Icons.add),
+                  label: const Text('添加分类'),
+                ),
+              ],
+            ),
           );
         }
         
-        // 使用DefaultTabController包裹整个内容区域
-        return DefaultTabController(
-          length: categories.length,
-          child: Column(
-            children: [
-              // 顶部Tab栏和添加分类按钮
-              Container(
-                decoration: const BoxDecoration(
-                  // 去除下边框线
-                  border: Border(),
-                ),
-                child: Stack(
-                  alignment: Alignment.centerRight,
-                  children: [
-                    // 标签栏，靠左对齐
-                    TabBar(
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      // 自定义下划线指示器
-                      indicator: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      dividerColor: Colors.transparent,  // 移除底部分割线
-                      labelColor: Theme.of(context).colorScheme.primary,
-                      unselectedLabelColor: Theme.of(context).colorScheme.onSurface,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 4), // 减小Tab之间的间距
-                      indicatorSize: TabBarIndicatorSize.label,
-                      // 禁用触摸反馈效果
-                      splashFactory: NoSplash.splashFactory,
-                      overlayColor: MaterialStateProperty.all(Colors.transparent),
-                      tabs: categories.map((category) {
-                        return Tab(
-                          child: GestureDetector(
-                            onLongPress: () {
-                              // 从屏幕中央弹出菜单
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('分类操作'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ListTile(
-                                        leading: const Icon(Icons.edit),
-                                        title: const Text('重命名分类'),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          _showEditCategoryDialog(category);
-                                        },
-                                      ),
-                                      ListTile(
-                                        leading: const Icon(Icons.copy),
-                                        title: const Text('复制分类'),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          _copyCategory(category);
-                                        },
-                                      ),
-                                      ListTile(
-                                        leading: const Icon(Icons.delete, color: Colors.red),
-                                        title: const Text('删除分类', style: TextStyle(color: Colors.red)),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          _deleteCategory(category);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Text(category.name),
-                          ),
-                        );
-                      }).toList(),
-                      onTap: (index) {
-                        ref.read(selectedCategoryProvider.notifier).state = categories[index].id;
-                      },
-                    ),
-                    
-                    // 添加分类按钮，固定在最右侧
-                    Positioned(
-                      right: 0,
-                      child: Container(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        child: IconButton(
-                          icon: const Icon(Icons.add),
-                          tooltip: '添加分类',
-                          onPressed: _showAddCategoryDialog,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // 内容区域
-              Expanded(
-                child: TabBarView(
-                  children: categories.map((category) {
-                    return CategorySoundsGrid(
-                      categoryId: category.id,
-                      onAddSound: () => _showAddSoundDialog(category.id),
+        // 确保有选定的分类
+        String currentCategoryId = selectedCategory ?? categories.first.id;
+        
+        // 使用聊天UI风格布局
+        return _currentNavIndex == 0
+            ? Column(
+                children: [
+                  // 分类选择器
+                  CategorySelector(
+                    categories: categories,
+                    selectedCategoryId: currentCategoryId,
+                    onSelectCategory: (categoryId) {
+                      ref.read(selectedCategoryProvider.notifier).state = categoryId;
+                    },
+                    onAddCategory: _showAddCategoryDialog,
+                    onLongPressCategory: _handleCategoryLongPress,
+                  ),
+                  
+                  // 聊天列表
+                  Expanded(
+                    child: ChatSoundsList(
+                      categoryId: currentCategoryId,
+                      onAddSound: () => _showAddSoundDialog(currentCategoryId),
                       onEditSound: _showEditSoundDialog,
                       onDeleteSound: _deleteSound,
                       onClearCache: _clearSoundCache,
-                    );
-                  }).toList(),
+                      onCopySound: _copySoundItem,
+                    ),
+                  ),
+                ],
+              )
+            : const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.mic, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text('录音功能即将上线'),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
+              );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => Center(
@@ -360,7 +337,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       key: _scaffoldKey,
       appBar: appBar,
       body: bodyContent,
-      endDrawer: Container(
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          indicatorColor: colorScheme.primary.withOpacity(0.1),
+          labelTextStyle: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) {
+              return TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.primary,
+              );
+            }
+            return TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant,
+            );
+          }),
+        ),
+        child: NavigationBar(
+          backgroundColor: colorScheme.surface,
+          elevation: 0,
+          selectedIndex: _currentNavIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentNavIndex = index;
+            });
+          },
+          destinations: [
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/icon_nav_cat.svg',
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  _currentNavIndex == 0 
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  BlendMode.srcIn,
+                ),
+              ),
+              label: '猫声',
+            ),
+            NavigationDestination(
+              icon: SvgPicture.asset(
+                'assets/images/icon_nav_mic.svg',
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  _currentNavIndex == 1 
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                  BlendMode.srcIn,
+                ),
+              ),
+              label: '录音',
+            ),
+          ],
+        ),
+      ),
+      // 悬浮按钮 - 添加音频
+      floatingActionButton: _currentNavIndex == 0 ? FloatingActionButton(
+        onPressed: () {
+          final selectedCategory = ref.watch(selectedCategoryProvider);
+          if (selectedCategory != null) {
+            _showAddSoundDialog(selectedCategory);
+          }
+        },
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        child: SvgPicture.asset(
+          'assets/images/icon_add_bottom.svg',
+          height: 24,
+          colorFilter: ColorFilter.mode(colorScheme.onPrimary, BlendMode.srcIn),
+        ),
+      ) : null,
+      endDrawer: SizedBox(
         width: 360.0, // 固定抽屉宽度为360dp
         child: SafeArea(
           child: Drawer(
@@ -534,170 +583,5 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
         ),
       );
     }
-  }
-}
-
-class CategorySoundsGrid extends ConsumerWidget {
-  final String categoryId;
-  final VoidCallback onAddSound;
-  final Function(CatSound) onEditSound;
-  final Function(CatSound) onDeleteSound;
-  final Function(CatSound) onClearCache;
-  
-  const CategorySoundsGrid({
-    Key? key,
-    required this.categoryId,
-    required this.onAddSound,
-    required this.onEditSound,
-    required this.onDeleteSound,
-    required this.onClearCache,
-  }) : super(key: key);
-  
-  // 复制音频功能
-  Future<void> _copySoundItem(BuildContext context, WidgetRef ref, CatSound sound) async {
-    // 创建新的音频名称
-    final newSoundName = '${sound.name}(副本)';
-    
-    // 添加复制后的音频
-    final newSound = await ref.read(soundManagerProvider.notifier).addSound(
-      name: newSoundName,
-      audioPath: sound.audioPath,
-      sourceType: sound.sourceType,
-      categoryId: categoryId,
-    );
-    
-    if (newSound != null && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('音频"${sound.name}"复制成功')),
-      );
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final soundsAsync = ref.watch(categorySoundsProvider(categoryId));
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-      child: soundsAsync.when(
-        data: (sounds) {
-          return Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              // 音频列表区域 - 更紧凑的设计
-              Positioned.fill(
-                bottom: 60, // 为底部添加按钮留出空间
-                child: sounds.isEmpty
-                    ? const SizedBox() // 如果没有音频，不显示列表
-                    : ListView.separated(
-                        itemCount: sounds.length,
-                        // 使用极细分隔线
-                        separatorBuilder: (context, index) => const Divider(height: 1, thickness: 0.2),
-                        itemBuilder: (context, index) {
-                          final sound = sounds[index];
-                          return GestureDetector(
-                            onLongPress: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('音频操作'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ListTile(
-                                        leading: const Icon(Icons.edit),
-                                        title: const Text('编辑'),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          onEditSound(sound);
-                                        },
-                                      ),
-                                      ListTile(
-                                        leading: const Icon(Icons.copy),
-                                        title: const Text('复制'),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          _copySoundItem(context, ref, sound);
-                                        },
-                                      ),
-                                      if (sound.isNetworkSource && sound.isCached)
-                                        ListTile(
-                                          leading: const Icon(Icons.cleaning_services),
-                                          title: const Text('清理缓存'),
-                                          onTap: () {
-                                            Navigator.of(context).pop();
-                                            onClearCache(sound);
-                                          },
-                                        ),
-                                      ListTile(
-                                        leading: const Icon(Icons.delete, color: Colors.red),
-                                        title: const Text('删除', style: TextStyle(color: Colors.red)),
-                                        onTap: () {
-                                          Navigator.of(context).pop();
-                                          onDeleteSound(sound);
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                            child: CatSoundButton(
-                              sound: sound,
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              
-              // 空状态提示 - 添加动画效果
-              if (sounds.isEmpty)
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('暂无音频，点击添加'),
-                      const SizedBox(height: 16),
-                      TweenAnimationBuilder<double>(
-                        tween: Tween<double>(begin: 1.0, end: 1.1),
-                        duration: const Duration(seconds: 2),
-                        curve: Curves.elasticInOut,
-                        builder: (context, value, child) {
-                          return Transform.scale(
-                            scale: value,
-                            child: ElevatedButton.icon(
-                              onPressed: onAddSound,
-                              icon: const Icon(Icons.add),
-                              label: const Text('添加音频'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              
-              // 添加按钮移至底部中央
-              if (sounds.isNotEmpty)
-                Positioned(
-                  bottom: 16,
-                  child: FloatingActionButton.extended(
-                    onPressed: onAddSound,
-                    icon: const Icon(Icons.add),
-                    label: const Text('添加音频'),
-                  ),
-                ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => Center(
-          child: Text('加载失败: $error'),
-        ),
-      ),
-    );
   }
 }
