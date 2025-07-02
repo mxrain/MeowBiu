@@ -94,7 +94,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
   void _openReleasePage() async {
     try {
-      final url = 'https://github.com/mxrain/miaowang/releases/tag/${widget.release.tagName}';
+      final url = 'https://github.com/mxrain/MeowBiu/releases/tag/${widget.release.tagName}';
       final uri = Uri.parse(url);
       
       // 添加日志输出
@@ -307,7 +307,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
             icon: const Icon(Icons.open_in_browser),
             label: const Text('浏览器下载'),
             onPressed: () async {
-              final url = 'https://github.com/mxrain/miaowang/releases/tag/${widget.release.tagName}';
+              final url = 'https://github.com/mxrain/MeowBiu/releases/tag/${widget.release.tagName}';
               final uri = Uri.parse(url);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);

@@ -1,4 +1,4 @@
-package com.example.miaowang
+package com.example.MeowBiu
 
 import io.flutter.embedding.android.FlutterActivity
 

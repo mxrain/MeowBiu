@@ -6,7 +6,7 @@ class UpdateUnavailableDialog extends StatelessWidget {
   const UpdateUnavailableDialog({Key? key}) : super(key: key);
 
   Future<void> _openGitHubPage() async {
-    const url = 'https://github.com/mxrain/miaowang/releases';
+    const url = 'https://github.com/mxrain/MeowBiu/releases';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);

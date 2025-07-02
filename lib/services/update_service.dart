@@ -15,7 +15,7 @@ import 'preference_service.dart';
 
 /// 更新服务，负责检查更新、下载和安装APK
 class UpdateService {
-  static const String _apiUrl = 'https://api.github.com/repos/mxrain/miaowang/releases';
+  static const String _apiUrl = 'https://api.github.com/repos/mxrain/MeowBiu/releases';
   static final Dio _dio = Dio();
   static CancelToken? _cancelToken;
   static HttpClient? _httpClient;
