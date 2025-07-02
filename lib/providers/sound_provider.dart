@@ -64,26 +64,87 @@ class PlaybackNotifier extends StateNotifier<PlaybackState> {
   
   final AudioService _audioService = AudioService();
   
-  // 播放音频
+  // 添加重置特定音频的状态方法
+  void resetState(String soundId) {
+    if (state.playingId == soundId) {
+      // 完全重置状态，包括进度条、按钮状态和秒数
+      state = PlaybackState(
+        playingId: null,
+        position: Duration.zero,
+        duration: Duration.zero,
+        isPlaying: false
+      );
+    }
+  }
+  
+  // 播放音频 - 优化响应速度
   Future<void> playSound(CatSound sound) async {
+    // 立即更新UI状态，让界面快速响应
     state = PlaybackState(playingId: sound.id, isPlaying: true);
-    await _audioService.safePlay(sound);
+    
+    // 异步播放音频
+    _audioService.safePlay(sound).then((_) {
+      // 播放成功后再次确认状态
+      if (state.playingId == sound.id) {
+        state = state.copyWith(isPlaying: true);
+      }
+    }).catchError((error) {
+      // 播放失败时重置状态
+      if (state.playingId == sound.id) {
+        state = PlaybackState();
+      }
+    });
     
     // 监听播放进度
     _audioService.getPositionStream(sound.id).listen((position) {
-      state = state.copyWith(position: position);
+      if (state.playingId == sound.id) {
+        state = state.copyWith(position: position);
+      }
     });
     
     // 监听总时长
     _audioService.getDurationStream(sound.id).listen((duration) {
-      state = state.copyWith(duration: duration);
+      if (state.playingId == sound.id) {
+        state = state.copyWith(duration: duration);
+      }
     });
   }
   
-  // 停止播放
+  // 暂停播放 - 快速响应
+  Future<void> pauseSound() async {
+    // 立即更新UI状态
+    final currentId = state.playingId;
+    if (currentId != null) {
+      state = state.copyWith(isPlaying: false);
+      // 异步执行暂停操作
+      await _audioService.pauseCurrentSound();
+    }
+  }
+  
+  // 停止播放 - 快速响应
   Future<void> stopSound() async {
-    await _audioService.stopCurrentSound();
+    // 立即更新UI状态
     state = PlaybackState();
+    // 异步执行停止操作
+    await _audioService.stopCurrentSound();
+  }
+  
+  // 继续播放 - 确保状态正确更新
+  Future<void> resumeSound() async {
+    // 立即更新UI状态
+    final currentId = state.playingId;
+    if (currentId != null) {
+      // 显式设置isPlaying为true以确保状态更新
+      state = state.copyWith(isPlaying: true);
+      
+      // 异步执行继续播放操作
+      await _audioService.resumeSound();
+      
+      // 确保状态在操作完成后仍然正确
+      if (state.playingId == currentId) {
+        state = state.copyWith(isPlaying: true);
+      }
+    }
   }
   
   // 清理资源

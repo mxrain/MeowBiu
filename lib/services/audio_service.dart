@@ -76,8 +76,8 @@ class AudioService {
   Future<void> safePlay(CatSound sound) async {
     final now = DateTime.now();
     if (now.difference(_lastPlayTime) < _minInterval) {
-      debugPrint('播放间隔过短，忽略请求');
-      return;
+      debugPrint('播放间隔过短，但仍继续处理');
+      // 继续处理，但更新时间戳
     }
     
     _lastPlayTime = now;
@@ -87,7 +87,7 @@ class AudioService {
   // 播放声音
   Future<void> playSound(CatSound sound) async {
     try {
-      // 如果当前有正在播放的音频，先停止
+      // 快速处理 - 立即停止当前播放
       if (_currentPlayingId != null && _currentPlayingId != sound.id) {
         await stopCurrentSound();
       }
@@ -98,11 +98,14 @@ class AudioService {
         await stopCurrentSound();
       }
       
+      // 立即更新当前播放ID，以便UI可以立即响应
+      _currentPlayingId = sound.id;
+      
       final player = _getPlayer(sound.id);
       
       // 根据音频源类型处理
       if (sound.sourceType == AudioSourceType.local) {
-        // 本地文件
+        // 本地文件 - 立即播放
         await player.play(DeviceFileSource(sound.audioPath));
       } else {
         // 网络文件 - 优先使用缓存
@@ -120,20 +123,39 @@ class AudioService {
         }
       }
       
-      _currentPlayingId = sound.id;
       sound.incrementPlayCount();
       
     } catch (e) {
       debugPrint('播放音频失败: $e');
+      // 如果播放失败，重置当前播放ID
+      if (_currentPlayingId == sound.id) {
+        _currentPlayingId = null;
+      }
     }
   }
   
   // 停止当前播放的声音
   Future<void> stopCurrentSound() async {
+    final currentId = _currentPlayingId;
+    if (currentId != null && _playerPool.containsKey(currentId)) {
+      // 立即更新状态，让UI可以快速响应
+      _currentPlayingId = null;
+      
+      // 然后执行实际的停止操作
+      final player = _playerPool[currentId]!;
+      await player.stop();
+      
+      // 重置播放位置
+      await player.seek(Duration.zero);
+    }
+  }
+  
+  // 暂停当前播放的声音
+  Future<void> pauseCurrentSound() async {
     if (_currentPlayingId != null && _playerPool.containsKey(_currentPlayingId)) {
       final player = _playerPool[_currentPlayingId!]!;
-      await player.stop();
-      _currentPlayingId = null;
+      // 快速暂停
+      await player.pause();
     }
   }
   
@@ -238,5 +260,13 @@ class AudioService {
     }
     _playerPool.clear();
     _recentlyUsed.clear();
+  }
+  
+  // 继续播放
+  Future<void> resumeSound() async {
+    if (_currentPlayingId != null && _playerPool.containsKey(_currentPlayingId)) {
+      final player = _playerPool[_currentPlayingId!]!;
+      await player.resume();
+    }
   }
 } 

@@ -4,7 +4,8 @@ import '../models/cat_sound.dart';
 import '../providers/sound_provider.dart';
 import 'chat_bubble.dart';
 
-class ChatSoundsList extends ConsumerWidget {
+// 修改为有状态组件
+class ChatSoundsList extends ConsumerStatefulWidget {
   final String categoryId;
   final VoidCallback onAddSound;
   final Function(CatSound) onEditSound;
@@ -23,9 +24,26 @@ class ChatSoundsList extends ConsumerWidget {
   }) : super(key: key);
   
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final soundsAsync = ref.watch(categorySoundsProvider(categoryId));
+  ConsumerState<ChatSoundsList> createState() => _ChatSoundsListState();
+}
+
+class _ChatSoundsListState extends ConsumerState<ChatSoundsList> {
+  // 添加滚动控制器
+  final ScrollController _scrollController = ScrollController();
+  
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final soundsAsync = ref.watch(categorySoundsProvider(widget.categoryId));
     final theme = Theme.of(context);
+    
+    // 与AppBar相同的背景颜色
+    final appBarBackgroundColor = const Color(0xFFF9F9F9);
     
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -36,10 +54,10 @@ class ChatSoundsList extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('暂无音频，添加一些猫声吧~'),
+                  const Text('暂无音频，添加一些喵音吧~'),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: onAddSound,
+                    onPressed: widget.onAddSound,
                     icon: const Icon(Icons.add),
                     label: const Text('添加音频'),
                   ),
@@ -48,19 +66,65 @@ class ChatSoundsList extends ConsumerWidget {
             );
           }
           
-          // 使用ListView显示聊天式音频列表
-          return ListView.builder(
-            itemCount: sounds.length,
-            padding: const EdgeInsets.only(bottom: 80), // 为FAB留出空间
-            itemBuilder: (context, index) {
-              final sound = sounds[index];
+          // 使用Stack和ShaderMask实现渐隐效果
+          return Stack(
+            children: [
+              // 顶部渐隐效果
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: 60, // 顶部渐隐区域高度
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        appBarBackgroundColor.withOpacity(0.0),
+                        appBarBackgroundColor,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               
-              return ChatBubble(
-                sound: sound,
-                avatarIndex: index,
-                onLongPress: () => _showSoundOptions(context, sound),
-              );
-            },
+              // 底部渐隐效果
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 100, // 渐隐区域高度
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        appBarBackgroundColor.withOpacity(0.0),
+                        appBarBackgroundColor,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // 列表视图
+              ListView.builder(
+                controller: _scrollController,
+                itemCount: sounds.length,
+                padding: const EdgeInsets.only(bottom: 100), // 为渐隐区域留出空间
+                itemBuilder: (context, index) {
+                  final sound = sounds[index];
+                  
+                  return ChatBubble(
+                    sound: sound,
+                    avatarIndex: index,
+                    onLongPress: () => _showSoundOptions(context, sound),
+                  );
+                },
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -84,7 +148,7 @@ class ChatSoundsList extends ConsumerWidget {
               title: const Text('编辑'),
               onTap: () {
                 Navigator.of(context).pop();
-                onEditSound(sound);
+                widget.onEditSound(sound);
               },
             ),
             ListTile(
@@ -92,7 +156,7 @@ class ChatSoundsList extends ConsumerWidget {
               title: const Text('复制'),
               onTap: () {
                 Navigator.of(context).pop();
-                onCopySound(sound);
+                widget.onCopySound(sound);
               },
             ),
             if (sound.isNetworkSource && sound.isCached)
@@ -101,7 +165,7 @@ class ChatSoundsList extends ConsumerWidget {
                 title: const Text('清理缓存'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  onClearCache(sound);
+                  widget.onClearCache(sound);
                 },
               ),
             ListTile(
@@ -109,7 +173,7 @@ class ChatSoundsList extends ConsumerWidget {
               title: const Text('删除', style: TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.of(context).pop();
-                onDeleteSound(sound);
+                widget.onDeleteSound(sound);
               },
             ),
           ],

@@ -16,8 +16,8 @@ class AboutScreen extends ConsumerStatefulWidget {
 
 class _AboutScreenState extends ConsumerState<AboutScreen> {
   PackageInfo _packageInfo = PackageInfo(
-    appName: '喵喵语录',
-    packageName: 'com.example.miaowang',
+    appName: '喵语',
+    packageName: 'com.example.miaobiu',
     version: '1.0.0',
     buildNumber: '1',
   );

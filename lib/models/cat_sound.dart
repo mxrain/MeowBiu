@@ -29,6 +29,12 @@ class CatSound extends HiveObject {
 
   @HiveField(6)
   DateTime lastPlayed;
+  
+  @HiveField(7, defaultValue: false)
+  bool isFavorite;
+  
+  @HiveField(8)
+  int? durationMs;
 
   CatSound({
     required this.id,
@@ -38,10 +44,14 @@ class CatSound extends HiveObject {
     this.cachedPath,
     this.playCount = 0,
     DateTime? lastPlayed,
+    this.isFavorite = false,
+    this.durationMs,
   }) : lastPlayed = lastPlayed ?? DateTime.now();
 
   bool get isNetworkSource => sourceType == AudioSourceType.network;
   bool get isCached => cachedPath != null;
+  
+  Duration get duration => Duration(milliseconds: durationMs ?? 0);
   
   void incrementPlayCount() {
     playCount++;
@@ -56,6 +66,16 @@ class CatSound extends HiveObject {
   
   void clearCache() {
     cachedPath = null;
+    save();
+  }
+  
+  void toggleFavorite() {
+    isFavorite = !isFavorite;
+    save();
+  }
+  
+  void updateDuration(Duration duration) {
+    durationMs = duration.inMilliseconds;
     save();
   }
 }

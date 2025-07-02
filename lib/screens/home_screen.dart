@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentNavIndex = 0; // 当前选中的底部导航索引
-  
+
   // 显示添加猫声对话框
   Future<void> _showAddSoundDialog(String categoryId) async {
     await showDialog(
@@ -30,7 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => SoundEditDialog(categoryId: categoryId),
     );
   }
-  
+
   // 显示编辑猫声对话框
   Future<void> _showEditSoundDialog(CatSound sound) async {
     await showDialog(
@@ -38,7 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => SoundEditDialog(sound: sound),
     );
   }
-  
+
   // 显示添加分类对话框
   Future<void> _showAddCategoryDialog() async {
     await showDialog(
@@ -46,7 +46,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => const CategoryEditDialog(),
     );
   }
-  
+
   // 显示编辑分类对话框
   Future<void> _showEditCategoryDialog(SoundCategory category) async {
     await showDialog(
@@ -54,38 +54,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => CategoryEditDialog(category: category),
     );
   }
-  
+
   // 复制分类
   Future<void> _copyCategory(SoundCategory category) async {
     // 创建一个新的分类名称，格式为"原名称 副本"
     final newCategoryName = '${category.name} 副本';
-    
+
     // 创建新分类并获取ID
-    final newCategory = await ref.read(soundManagerProvider.notifier).addCategory(newCategoryName);
-    
+    final newCategory = await ref
+        .read(soundManagerProvider.notifier)
+        .addCategory(newCategoryName);
+
     if (newCategory != null) {
       // 获取原分类下的所有音频
-      final sounds = await ref.watch(categorySoundsProvider(category.id).future);
-      
+      final sounds = await ref.watch(
+        categorySoundsProvider(category.id).future,
+      );
+
       // 复制每个音频到新分类
       for (final sound in sounds) {
-        await ref.read(soundManagerProvider.notifier).addSound(
-          name: sound.name,
-          audioPath: sound.audioPath,
-          sourceType: sound.sourceType,
-          categoryId: newCategory.id,
-        );
+        await ref
+            .read(soundManagerProvider.notifier)
+            .addSound(
+              name: sound.name,
+              audioPath: sound.audioPath,
+              sourceType: sound.sourceType,
+              categoryId: newCategory.id,
+            );
       }
-      
+
       // 显示成功提示
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('分类"${category.name}"复制成功')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('分类"${category.name}"复制成功')));
       }
     }
   }
-  
+
   // 删除分类
   Future<void> _deleteCategory(SoundCategory category) async {
     final confirmed = await showDialog<bool>(
@@ -100,20 +106,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('删除'),
           ),
         ],
       ),
     );
-    
+
     if (confirmed == true) {
       await ref.read(soundManagerProvider.notifier).deleteCategory(category.id);
     }
   }
-  
+
   // 删除猫声
   Future<void> _deleteSound(CatSound sound) async {
     final confirmed = await showDialog<bool>(
@@ -128,24 +132,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('删除'),
           ),
         ],
       ),
     );
-    
+
     if (confirmed == true) {
       await ref.read(soundManagerProvider.notifier).deleteSound(sound.id);
     }
   }
-  
+
   // 清理单个猫声的缓存
   Future<void> _clearSoundCache(CatSound sound) async {
     if (!sound.isCached) return;
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -163,40 +165,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
-    
+
     if (confirmed == true) {
-      final result = await ref.read(soundManagerProvider.notifier).clearSoundCache(sound);
+      final result = await ref
+          .read(soundManagerProvider.notifier)
+          .clearSoundCache(sound);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result ? '缓存清理成功' : '缓存清理失败')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(result ? '缓存清理成功' : '缓存清理失败')));
       }
     }
   }
-  
+
   // 复制音频
   Future<void> _copySoundItem(CatSound sound) async {
     // 创建新的音频名称
     final newSoundName = '${sound.name}(副本)';
-    
+
     // 获取当前分类ID
     final String? currentCategoryId = ref.read(selectedCategoryProvider);
-    
+
     // 添加复制后的音频
-    final newSound = await ref.read(soundManagerProvider.notifier).addSound(
-      name: newSoundName,
-      audioPath: sound.audioPath,
-      sourceType: sound.sourceType,
-      categoryId: currentCategoryId,
-    );
-    
+    final newSound = await ref
+        .read(soundManagerProvider.notifier)
+        .addSound(
+          name: newSoundName,
+          audioPath: sound.audioPath,
+          sourceType: sound.sourceType,
+          categoryId: currentCategoryId,
+        );
+
     if (newSound != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('音频"${sound.name}"复制成功')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('音频"${sound.name}"复制成功')));
     }
   }
-  
+
   // 处理分类长按事件
   void _handleCategoryLongPress(SoundCategory category) {
     showModalBottomSheet(
@@ -234,36 +240,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final selectedCategory = ref.watch(selectedCategoryProvider);
-    
+
     // 创建AppBar - 聊天风格的顶部栏
     final appBar = AppBar(
-      title: const Text('猫语', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28)),
-      centerTitle: true,
+      scrolledUnderElevation: 0,
+      toolbarHeight: 160, 
+      backgroundColor: const Color(0xFFF9F9F9),
+      title: const Text(
+        '喵语',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 90),
+      ),
+      centerTitle: false,
+      titleSpacing: 20, // 调整标题左侧间距
+      // 5. 修改设置图标的大小和位置
       actions: [
-        // 设置按钮
-        IconButton(
-          icon: SvgPicture.asset(
-            'assets/images/icon_settings_gear.svg',
-            height: 32,
-            colorFilter: ColorFilter.mode(colorScheme.onSurface, BlendMode.srcIn),
+        Padding(
+          padding: const EdgeInsets.only(right: 20), // 调整右侧边距
+          child: IconButton(
+            icon: SvgPicture.asset(
+              'assets/images/icon_settings_gear.svg',
+              height: 90, // 修改图标大小
+              colorFilter: ColorFilter.mode(
+                colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
+            ),
+            tooltip: '设置',
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              _scaffoldKey.currentState?.openEndDrawer();
+            },
           ),
-          tooltip: '设置',
-          onPressed: () {
-            // 添加轻微触觉反馈
-            HapticFeedback.lightImpact();
-            // 打开右侧抽屉
-            _scaffoldKey.currentState?.openEndDrawer();
-          },
         ),
       ],
     );
-    
+
     // 构建主体内容
     final bodyContent = categoriesAsync.when(
       data: (categories) {
@@ -283,132 +300,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           );
         }
-        
+
         // 确保有选定的分类
         String currentCategoryId = selectedCategory ?? categories.first.id;
-        
+
         // 使用聊天UI风格布局
-        return _currentNavIndex == 0
-            ? Column(
-                children: [
-                  // 分类选择器
-                  CategorySelector(
-                    categories: categories,
-                    selectedCategoryId: currentCategoryId,
-                    onSelectCategory: (categoryId) {
-                      ref.read(selectedCategoryProvider.notifier).state = categoryId;
-                    },
-                    onAddCategory: _showAddCategoryDialog,
-                    onLongPressCategory: _handleCategoryLongPress,
-                  ),
-                  
-                  // 聊天列表
-                  Expanded(
-                    child: ChatSoundsList(
-                      categoryId: currentCategoryId,
-                      onAddSound: () => _showAddSoundDialog(currentCategoryId),
-                      onEditSound: _showEditSoundDialog,
-                      onDeleteSound: _deleteSound,
-                      onClearCache: _clearSoundCache,
-                      onCopySound: _copySoundItem,
-                    ),
-                  ),
-                ],
-              )
-            : const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.mic, size: 64, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text('录音功能即将上线'),
-                  ],
-                ),
-              );
+        return Column(
+          children: [
+            // 分类选择器
+            CategorySelector(
+              categories: categories,
+              selectedCategoryId: currentCategoryId,
+              onSelectCategory: (categoryId) {
+                ref.read(selectedCategoryProvider.notifier).state = categoryId;
+              },
+              onAddCategory: _showAddCategoryDialog,
+              onLongPressCategory: _handleCategoryLongPress,
+            ),
+
+            // 聊天列表
+            Expanded(
+              child: ChatSoundsList(
+                categoryId: currentCategoryId,
+                onAddSound: () => _showAddSoundDialog(currentCategoryId),
+                onEditSound: _showEditSoundDialog,
+                onDeleteSound: _deleteSound,
+                onClearCache: _clearSoundCache,
+                onCopySound: _copySoundItem,
+              ),
+            ),
+          ],
+        );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(
-        child: Text('加载失败: $error'),
+      error: (error, stackTrace) => Center(child: Text('加载失败: $error')),
+    );
+
+    // 自定义底部工具栏
+    final customBottomBar = Container(
+      height: 70,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          // 左侧猫头按钮
+          SvgPicture.asset(
+            'assets/images/icon_nav_cat.svg',
+            height: 28,
+            colorFilter: ColorFilter.mode(colorScheme.primary, BlendMode.srcIn),
+          ),
+
+          // 中间添加按钮
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: SvgPicture.asset(
+                'assets/images/icon_add_bottom.svg',
+                height: 28,
+                colorFilter: const ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ),
+              ),
+              onPressed: () {
+                final selectedCategory = ref.watch(selectedCategoryProvider);
+                if (selectedCategory != null) {
+                  _showAddSoundDialog(selectedCategory);
+                }
+              },
+            ),
+          ),
+
+          // 右侧录音按钮
+          SvgPicture.asset(
+            'assets/images/icon_nav_mic.svg',
+            height: 28,
+            colorFilter: ColorFilter.mode(
+              colorScheme.onSurfaceVariant,
+              BlendMode.srcIn,
+            ),
+          ),
+        ],
       ),
     );
-    
+
     // 使用Scaffold包装
     return Scaffold(
       key: _scaffoldKey,
       appBar: appBar,
       body: bodyContent,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          indicatorColor: colorScheme.primary.withOpacity(0.1),
-          labelTextStyle: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.primary,
-              );
-            }
-            return TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurfaceVariant,
-            );
-          }),
-        ),
-        child: NavigationBar(
-          backgroundColor: colorScheme.surface,
-          elevation: 0,
-          selectedIndex: _currentNavIndex,
-          onDestinationSelected: (index) {
-            setState(() {
-              _currentNavIndex = index;
-            });
-          },
-          destinations: [
-            NavigationDestination(
-              icon: SvgPicture.asset(
-                'assets/images/icon_nav_cat.svg',
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  _currentNavIndex == 0 
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                  BlendMode.srcIn,
-                ),
-              ),
-              label: '猫声',
-            ),
-            NavigationDestination(
-              icon: SvgPicture.asset(
-                'assets/images/icon_nav_mic.svg',
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  _currentNavIndex == 1 
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant,
-                  BlendMode.srcIn,
-                ),
-              ),
-              label: '录音',
-            ),
-          ],
-        ),
-      ),
-      // 悬浮按钮 - 添加音频
-      floatingActionButton: _currentNavIndex == 0 ? FloatingActionButton(
-        onPressed: () {
-          final selectedCategory = ref.watch(selectedCategoryProvider);
-          if (selectedCategory != null) {
-            _showAddSoundDialog(selectedCategory);
-          }
-        },
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
-        child: SvgPicture.asset(
-          'assets/images/icon_add_bottom.svg',
-          height: 24,
-          colorFilter: ColorFilter.mode(colorScheme.onPrimary, BlendMode.srcIn),
-        ),
-      ) : null,
+      backgroundColor: const Color(0xFFF9F9F9), // 设置背景色为浅灰色
+      bottomNavigationBar: customBottomBar,
       endDrawer: SizedBox(
         width: 360.0, // 固定抽屉宽度为360dp
         child: SafeArea(
@@ -423,10 +419,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       Text(
                         '设置',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -493,7 +490,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     _handleItemTap(context, '/help');
                   },
                 ),
-                
+
                 // 关于入口 - 放在设置列表的最后一项
                 _buildSettingItem(
                   context,
@@ -516,7 +513,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
     );
   }
-  
+
   // 创建单个设置项
   Widget _buildSettingItem(
     BuildContext context, {
@@ -526,28 +523,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required VoidCallback onTap,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: colorScheme.primary,
-          size: 28,
-        ),
+        leading: Icon(icon, color: colorScheme.primary, size: 28),
         title: Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: colorScheme.onSurface,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             description,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         onTap: () {
@@ -562,7 +555,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _handleItemTap(BuildContext context, String route) {
     // 关闭抽屉
     Navigator.pop(context);
-    
+
     // 根据路由导航到相应页面
     if (route == '/about') {
       Navigator.push(
