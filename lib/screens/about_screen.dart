@@ -17,7 +17,7 @@ class AboutScreen extends ConsumerStatefulWidget {
 class _AboutScreenState extends ConsumerState<AboutScreen> {
   PackageInfo _packageInfo = PackageInfo(
     appName: '喵语',
-    packageName: 'com.example.miaobiu',
+    packageName: 'com.example.meowbiu',
     version: '1.0.0',
     buildNumber: '1',
   );
@@ -93,8 +93,6 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    
     return Scaffold(
       body: CustomScrollView(
         slivers: [

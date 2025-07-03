@@ -21,7 +21,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _currentNavIndex = 0; // 当前选中的底部导航索引
+  final int _currentNavIndex = 0; // 当前选中的底部导航索引
 
   // 显示添加猫声对话框
   Future<void> _showAddSoundDialog(String categoryId) async {

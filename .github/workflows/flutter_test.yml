@@ -1,0 +1,47 @@
+name: Flutter测试
+
+on:
+  push:
+    branches: [ master, main, '**' ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    name: 测试构建
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Flutter环境
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+      
+      - name: 缓存Pub依赖
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.PUB_CACHE }}
+            .dart_tool/
+            build/
+          key: ${{ runner.os }}-pub-test-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-test-
+      
+      - name: 获取依赖
+        run: flutter pub get
+      
+      - name: 检查格式
+        run: dart format --set-exit-if-changed .
+      
+      - name: 分析代码
+        run: flutter analyze
+
+      - name: 运行测试
+        run: flutter test
+
+      - name: 验证Android构建
+        run: flutter build apk --debug 
