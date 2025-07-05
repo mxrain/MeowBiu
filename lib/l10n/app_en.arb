@@ -1,0 +1,86 @@
+{
+  "appTitle": "Meow Quotes",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings title"
+  },
+  "themeSettings": "Theme Settings",
+  "@themeSettings": {
+    "description": "Theme settings option"
+  },
+  "themeSettingsDescription": "Customize app theme colors and dark mode",
+  "@themeSettingsDescription": {
+    "description": "Theme settings description"
+  },
+  "audioSettings": "Audio Settings",
+  "@audioSettings": {
+    "description": "Audio settings option"
+  },
+  "audioSettingsDescription": "Adjust volume and playback options",
+  "@audioSettingsDescription": {
+    "description": "Audio settings description"
+  },
+  "languageSettings": "Language",
+  "@languageSettings": {
+    "description": "Language settings option"
+  },
+  "languageSettingsDescription": "Switch application interface language",
+  "@languageSettingsDescription": {
+    "description": "Language settings description"
+  },
+  "storageAndCache": "Storage & Cache",
+  "@storageAndCache": {
+    "description": "Storage and cache option"
+  },
+  "storageAndCacheDescription": "Manage audio cache and storage space",
+  "@storageAndCacheDescription": {
+    "description": "Storage and cache description"
+  },
+  "notificationSettings": "Notification Settings",
+  "@notificationSettings": {
+    "description": "Notification settings option"
+  },
+  "notificationSettingsDescription": "Manage app notifications and alerts",
+  "@notificationSettingsDescription": {
+    "description": "Notification settings description"
+  },
+  "helpAndFeedback": "Help & Feedback",
+  "@helpAndFeedback": {
+    "description": "Help and feedback option"
+  },
+  "helpAndFeedbackDescription": "Get help or submit feedback",
+  "@helpAndFeedbackDescription": {
+    "description": "Help and feedback description"
+  },
+  "about": "About",
+  "@about": {
+    "description": "About option"
+  },
+  "aboutDescription": "Version, feedback, auto-update",
+  "@aboutDescription": {
+    "description": "About description"
+  },
+  "selectLanguage": "Select application language",
+  "@selectLanguage": {
+    "description": "Select language prompt text"
+  },
+  "simplifiedChinese": "简体中文",
+  "@simplifiedChinese": {
+    "description": "Simplified Chinese option"
+  },
+  "english": "English",
+  "@english": {
+    "description": "English option"
+  },
+  "languageChangeNotice": "Note: Language settings will take effect after restarting the app",
+  "@languageChangeNotice": {
+    "description": "Language change notice"
+  },
+  "languageChanged": "Language changed, restart the app for changes to take effect",
+  "@languageChanged": {
+    "description": "Language changed message"
+  }
+} 

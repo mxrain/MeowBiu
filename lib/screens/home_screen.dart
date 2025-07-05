@@ -9,6 +9,7 @@ import '../widgets/category_selector.dart';
 import '../widgets/chat_sounds_list.dart';
 import '../widgets/sound_edit_dialog.dart';
 import '../widgets/category_edit_dialog.dart';
+import '../widgets/settings_drawer.dart';
 import 'about_screen.dart';
 import 'storage_settings_screen.dart';
 
@@ -408,102 +409,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       endDrawer: SizedBox(
         width: 360.0, // 固定抽屉宽度为360dp
         child: SafeArea(
-          child: Drawer(
-            child: Column(
-              children: [
-                // 抽屉头部
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 32, 16, 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '设置',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Divider(),
-
-                // 设置项
-                _buildSettingItem(
-                  context,
-                  icon: Icons.color_lens_outlined,
-                  title: '主题设置',
-                  description: '自定义应用主题颜色和深色模式',
-                  onTap: () {
-                    _handleItemTap(context, '/theme-settings');
-                  },
-                ),
-
-                _buildSettingItem(
-                  context,
-                  icon: Icons.volume_up_outlined,
-                  title: '音频设置',
-                  description: '调整音量和播放选项',
-                  onTap: () {
-                    _handleItemTap(context, '/audio-settings');
-                  },
-                ),
-
-                _buildSettingItem(
-                  context,
-                  icon: Icons.cloud_outlined,
-                  title: '存储与缓存',
-                  description: '管理音频缓存和存储空间',
-                  onTap: () {
-                    _handleItemTap(context, '/storage-settings');
-                  },
-                ),
-
-                _buildSettingItem(
-                  context,
-                  icon: Icons.notifications_outlined,
-                  title: '通知设置',
-                  description: '管理应用通知和提醒',
-                  onTap: () {
-                    _handleItemTap(context, '/notification-settings');
-                  },
-                ),
-
-                const Divider(),
-
-                _buildSettingItem(
-                  context,
-                  icon: Icons.help_outline,
-                  title: '帮助与反馈',
-                  description: '获取帮助或提交问题反馈',
-                  onTap: () {
-                    _handleItemTap(context, '/help');
-                  },
-                ),
-
-                // 关于入口 - 放在设置列表的最后一项
-                _buildSettingItem(
-                  context,
-                  icon: Icons.info_rounded,
-                  title: '关于',
-                  description: '版本、意见反馈、自动更新',
-                  onTap: () {
-                    _handleItemTap(context, '/about');
-                  },
-                ),
-              ],
-            ),
-          ),
+          child: const SettingsDrawer(),
         ),
       ),
       onEndDrawerChanged: (isOpened) {

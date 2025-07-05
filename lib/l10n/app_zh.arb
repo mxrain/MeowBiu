@@ -1,0 +1,86 @@
+{
+  "appTitle": "喵喵语录",
+  "@appTitle": {
+    "description": "应用标题"
+  },
+  "settings": "设置",
+  "@settings": {
+    "description": "设置标题"
+  },
+  "themeSettings": "主题设置",
+  "@themeSettings": {
+    "description": "主题设置选项"
+  },
+  "themeSettingsDescription": "自定义应用主题颜色和深色模式",
+  "@themeSettingsDescription": {
+    "description": "主题设置描述"
+  },
+  "audioSettings": "音频设置",
+  "@audioSettings": {
+    "description": "音频设置选项"
+  },
+  "audioSettingsDescription": "调整音量和播放选项",
+  "@audioSettingsDescription": {
+    "description": "音频设置描述"
+  },
+  "languageSettings": "语言",
+  "@languageSettings": {
+    "description": "语言设置选项"
+  },
+  "languageSettingsDescription": "切换应用界面语言",
+  "@languageSettingsDescription": {
+    "description": "语言设置描述"
+  },
+  "storageAndCache": "存储与缓存",
+  "@storageAndCache": {
+    "description": "存储与缓存选项"
+  },
+  "storageAndCacheDescription": "管理音频缓存和存储空间",
+  "@storageAndCacheDescription": {
+    "description": "存储与缓存描述"
+  },
+  "notificationSettings": "通知设置",
+  "@notificationSettings": {
+    "description": "通知设置选项"
+  },
+  "notificationSettingsDescription": "管理应用通知和提醒",
+  "@notificationSettingsDescription": {
+    "description": "通知设置描述"
+  },
+  "helpAndFeedback": "帮助与反馈",
+  "@helpAndFeedback": {
+    "description": "帮助与反馈选项"
+  },
+  "helpAndFeedbackDescription": "获取帮助或提交问题反馈",
+  "@helpAndFeedbackDescription": {
+    "description": "帮助与反馈描述"
+  },
+  "about": "关于",
+  "@about": {
+    "description": "关于选项"
+  },
+  "aboutDescription": "版本、意见反馈、自动更新",
+  "@aboutDescription": {
+    "description": "关于描述"
+  },
+  "selectLanguage": "选择应用界面语言",
+  "@selectLanguage": {
+    "description": "选择语言提示文本"
+  },
+  "simplifiedChinese": "简体中文",
+  "@simplifiedChinese": {
+    "description": "简体中文选项"
+  },
+  "english": "English",
+  "@english": {
+    "description": "英文选项"
+  },
+  "languageChangeNotice": "注意：语言设置将在应用重启后生效",
+  "@languageChangeNotice": {
+    "description": "语言更改提示"
+  },
+  "languageChanged": "语言设置已更改，重启应用后生效",
+  "@languageChanged": {
+    "description": "语言已更改提示"
+  }
+} 

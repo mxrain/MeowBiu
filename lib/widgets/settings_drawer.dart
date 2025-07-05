@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../screens/about_screen.dart';
+import '../screens/language_settings_screen.dart';
+import '../screens/storage_settings_screen.dart';
 
 class SettingsDrawer extends StatelessWidget {
   final VoidCallback? onClose;
@@ -12,6 +15,8 @@ class SettingsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    
     return NavigationDrawer(
       elevation: 1.0,
       tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -23,7 +28,7 @@ class SettingsDrawer extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '设置',
+                localizations.settings,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,
@@ -50,8 +55,8 @@ class SettingsDrawer extends StatelessWidget {
         _buildSettingItem(
           context,
           icon: Icons.color_lens_outlined,
-          title: '主题设置',
-          description: '自定义应用主题颜色和深色模式',
+          title: localizations.themeSettings,
+          description: localizations.themeSettingsDescription,
           onTap: () {
             _handleItemTap(context, '/theme-settings');
           },
@@ -60,8 +65,8 @@ class SettingsDrawer extends StatelessWidget {
         _buildSettingItem(
           context,
           icon: Icons.volume_up_outlined,
-          title: '音频设置',
-          description: '调整音量和播放选项',
+          title: localizations.audioSettings,
+          description: localizations.audioSettingsDescription,
           onTap: () {
             _handleItemTap(context, '/audio-settings');
           },
@@ -69,9 +74,19 @@ class SettingsDrawer extends StatelessWidget {
 
         _buildSettingItem(
           context,
+          icon: Icons.language_outlined,
+          title: localizations.languageSettings,
+          description: localizations.languageSettingsDescription,
+          onTap: () {
+            _handleItemTap(context, '/language-settings');
+          },
+        ),
+
+        _buildSettingItem(
+          context,
           icon: Icons.cloud_outlined,
-          title: '存储与缓存',
-          description: '管理音频缓存和存储空间',
+          title: localizations.storageAndCache,
+          description: localizations.storageAndCacheDescription,
           onTap: () {
             _handleItemTap(context, '/storage-settings');
           },
@@ -80,8 +95,8 @@ class SettingsDrawer extends StatelessWidget {
         _buildSettingItem(
           context,
           icon: Icons.notifications_outlined,
-          title: '通知设置',
-          description: '管理应用通知和提醒',
+          title: localizations.notificationSettings,
+          description: localizations.notificationSettingsDescription,
           onTap: () {
             _handleItemTap(context, '/notification-settings');
           },
@@ -92,8 +107,8 @@ class SettingsDrawer extends StatelessWidget {
         _buildSettingItem(
           context,
           icon: Icons.help_outline,
-          title: '帮助与反馈',
-          description: '获取帮助或提交问题反馈',
+          title: localizations.helpAndFeedback,
+          description: localizations.helpAndFeedbackDescription,
           onTap: () {
             _handleItemTap(context, '/help');
           },
@@ -103,8 +118,8 @@ class SettingsDrawer extends StatelessWidget {
         _buildSettingItem(
           context,
           icon: Icons.info_rounded,
-          title: '关于',
-          description: '版本、意见反馈、自动更新',
+          title: localizations.about,
+          description: localizations.aboutDescription,
           onTap: () {
             _handleItemTap(context, '/about');
           },
@@ -164,6 +179,16 @@ class SettingsDrawer extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const AboutScreen()),
+      );
+    } else if (route == '/language-settings') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LanguageSettingsScreen()),
+      );
+    } else if (route == '/storage-settings') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const StorageSettingsScreen()),
       );
     } else {
       // 其他路由暂时只显示一个SnackBar提示

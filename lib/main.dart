@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'services/preference_service.dart';
 import 'services/update_service.dart';
@@ -19,6 +22,8 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
+  String _locale = 'zh';
+  
   @override
   void initState() {
     super.initState();
@@ -29,6 +34,12 @@ class _MyAppState extends ConsumerState<MyApp> {
     // 初始化偏好设置服务
     final prefService = PreferenceService();
     await prefService.init();
+    
+    // 获取存储的语言设置
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _locale = prefs.getString('language_code') ?? 'zh';
+    });
 
     // 检查是否需要自动更新
     _checkForUpdates();
@@ -98,6 +109,18 @@ class _MyAppState extends ConsumerState<MyApp> {
       ),
       themeMode: ThemeMode.system,
       home: const HomeScreen(),
+      // 国际化支持
+      locale: Locale(_locale),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('zh'), // 中文
+        Locale('en'), // 英文
+      ],
     );
   }
 }
