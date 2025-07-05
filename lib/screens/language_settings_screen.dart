@@ -1,63 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../providers/locale_provider.dart';
 
-class LanguageSettingsScreen extends StatefulWidget {
+class LanguageSettingsScreen extends ConsumerStatefulWidget {
   const LanguageSettingsScreen({Key? key}) : super(key: key);
 
   @override
-  State<LanguageSettingsScreen> createState() => _LanguageSettingsScreenState();
+  ConsumerState<LanguageSettingsScreen> createState() => _LanguageSettingsScreenState();
 }
 
-class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
-  String _currentLocale = 'zh'; // 默认为中文
-  
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrentLocale();
-  }
-  
-  // 加载当前语言设置
-  Future<void> _loadCurrentLocale() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _currentLocale = prefs.getString('language_code') ?? 'zh';
-    });
-  }
-  
-  // 保存语言设置
-  Future<void> _saveLocale(String localeCode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language_code', localeCode);
-    setState(() {
-      _currentLocale = localeCode;
-    });
-    
-    // 显示提示
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('语言设置已更改，重启应用后生效'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-  
+class _LanguageSettingsScreenState extends ConsumerState<LanguageSettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    // 从Provider获取当前语言设置
+    final currentLocale = ref.watch(localeProvider);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('语言设置'),
+        title: Text(localizations.languageSettings),
         centerTitle: true,
       ),
       body: ListView(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Text(
-              '选择应用界面语言',
-              style: TextStyle(
+              localizations.selectLanguage,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -67,19 +39,19 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
           // 中文选项
           _buildLanguageOption(
             context: context,
-            title: '简体中文', 
+            title: localizations.simplifiedChinese, 
             subtitle: '简体中文',
             locale: 'zh',
-            selected: _currentLocale == 'zh',
+            selected: currentLocale == 'zh',
           ),
           
           // 英文选项
           _buildLanguageOption(
             context: context,
-            title: 'English',
+            title: localizations.english,
             subtitle: 'English',
             locale: 'en',
-            selected: _currentLocale == 'en',
+            selected: currentLocale == 'en',
           ),
           
           const SizedBox(height: 24),
@@ -114,8 +86,19 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
       trailing: selected
           ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
           : null,
-      onTap: () {
-        _saveLocale(locale);
+      onTap: () async {
+        // 使用Provider更改语言
+        await ref.read(localeProvider.notifier).changeLocale(locale);
+        
+        // 显示提示，但不需要重启应用
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.languageChanged),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
       },
     );
   }

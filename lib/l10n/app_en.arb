@@ -79,7 +79,7 @@
   "@languageChangeNotice": {
     "description": "Language change notice"
   },
-  "languageChanged": "Language changed, restart the app for changes to take effect",
+  "languageChanged": "Language settings updated",
   "@languageChanged": {
     "description": "Language changed message"
   }

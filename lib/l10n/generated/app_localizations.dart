@@ -221,7 +221,7 @@ abstract class AppLocalizations {
   /// 语言已更改提示
   ///
   /// In zh, this message translates to:
-  /// **'语言设置已更改，重启应用后生效'**
+  /// **'语言设置已更改'**
   String get languageChanged;
 }
 

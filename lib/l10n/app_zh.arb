@@ -79,7 +79,7 @@
   "@languageChangeNotice": {
     "description": "语言更改提示"
   },
-  "languageChanged": "语言设置已更改，重启应用后生效",
+  "languageChanged": "语言设置已更改",
   "@languageChanged": {
     "description": "语言已更改提示"
   }

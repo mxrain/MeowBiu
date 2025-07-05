@@ -8,6 +8,7 @@ import 'services/preference_service.dart';
 import 'services/update_service.dart';
 import 'widgets/update_dialog.dart';
 import 'models/release.dart';
+import 'providers/locale_provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,8 +23,6 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
-  String _locale = 'zh';
-  
   @override
   void initState() {
     super.initState();
@@ -35,12 +34,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     final prefService = PreferenceService();
     await prefService.init();
     
-    // 获取存储的语言设置
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _locale = prefs.getString('language_code') ?? 'zh';
-    });
-
     // 检查是否需要自动更新
     _checkForUpdates();
   }
@@ -94,6 +87,9 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    // 监听语言设置的变化
+    final currentLocale = ref.watch(localeProvider);
+    
     return MaterialApp(
       title: '喵喵语录',
       theme: ThemeData(
@@ -110,17 +106,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       themeMode: ThemeMode.system,
       home: const HomeScreen(),
       // 国际化支持
-      locale: Locale(_locale),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('zh'), // 中文
-        Locale('en'), // 英文
-      ],
+      locale: Locale(currentLocale),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }

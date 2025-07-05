@@ -74,6 +74,5 @@ class AppLocalizationsEn extends AppLocalizations {
       'Note: Language settings will take effect after restarting the app';
 
   @override
-  String get languageChanged =>
-      'Language changed, restart the app for changes to take effect';
+  String get languageChanged => 'Language settings updated';
 }

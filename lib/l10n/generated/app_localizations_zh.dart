@@ -69,5 +69,5 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageChangeNotice => '注意：语言设置将在应用重启后生效';
 
   @override
-  String get languageChanged => '语言设置已更改，重启应用后生效';
+  String get languageChanged => '语言设置已更改';
 }
