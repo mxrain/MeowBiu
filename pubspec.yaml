@@ -53,7 +53,7 @@ dependencies:
   
   # 网络与缓存
   dio: ^5.3.3
-  dio_cache_interceptor: ^4.0.3
+  dio_cache_interceptor: ^4.0.5
   
   # 文件处理
   # file_picker: ^7.0.0  # 移除不兼容的库
