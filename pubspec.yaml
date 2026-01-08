@@ -52,7 +52,7 @@ dependencies:
   uuid: ^4.1.0
   
   # 网络与缓存
-  dio: ^5.3.3
+  dio: ^5.9.0
   dio_cache_interceptor: ^4.0.3
   
   # 文件处理
