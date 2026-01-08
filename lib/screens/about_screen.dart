@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/update_provider.dart';
+import '../widgets/update_dialog.dart';
 
 /// 关于页面
 class AboutScreen extends ConsumerStatefulWidget {
@@ -14,13 +16,11 @@ class AboutScreen extends ConsumerStatefulWidget {
 
 class _AboutScreenState extends ConsumerState<AboutScreen> {
   PackageInfo _packageInfo = PackageInfo(
-    appName: '喵喵语录',
+    appName: '喵王语录',
     packageName: 'com.example.miaowang',
     version: '1.0.0',
     buildNumber: '1',
   );
-
-  bool _autoUpdateEnabled = true;
 
   @override
   void initState() {
@@ -93,32 +93,62 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
                 context,
                 icon: Icons.new_releases_outlined,
                 title: '版本发布',
-                description: '查看最新版本与更新日记',
-                onTap: () => _launchUrl('https://github.com/mxraincheckForUpdates/miaowang/releases'),
+                description: '查看最新版本与更新日志',
+                onTap: () => _launchUrl('https://github.com/mxrain/miaowang/releases'),
               ),
               
-              // 自动更新项
+              // 检查更新项
               _buildListItem(
                 context,
-                icon: _autoUpdateEnabled
-                    ? Icons.update_outlined
-                    : Icons.update_disabled_outlined,
-                title: '自动更新',
-                description: '检查更新',
+                icon: Icons.update_outlined,
+                title: '检查更新',
+                description: _getUpdateDescription(),
+                trailing: ref.watch(updateCheckProvider).isChecking
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                onTap: () async {
+                  final settings = ref.read(updateSettingsProvider);
+                  await ref.read(updateCheckProvider.notifier).checkForUpdate(
+                    includePrerelease: settings.includePrerelease,
+                  );
+                  await ref.read(updateSettingsProvider.notifier).updateLastCheckTime();
+                  
+                  final state = ref.read(updateCheckProvider);
+                  if (mounted) {
+                    if (state.updateInfo != null) {
+                      UpdateDialog.show(context, state.updateInfo!);
+                    } else if (state.error != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('检查失败: ${state.error}')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('已是最新版本')),
+                      );
+                    }
+                  }
+                },
+              ),
+              
+              // 自动更新开关
+              _buildListItem(
+                context,
+                icon: Icons.autorenew_outlined,
+                title: '自动检查更新',
+                description: '启动时自动检查新版本',
                 trailing: Switch(
-                  value: _autoUpdateEnabled,
+                  value: ref.watch(updateSettingsProvider).autoCheck,
                   onChanged: (value) {
-                    setState(() {
-                      _autoUpdateEnabled = value;
-                    });
-                    // TODO: 在实际实现中保存设置
+                    ref.read(updateSettingsProvider.notifier).setAutoCheck(value);
                   },
                 ),
                 onTap: () {
-                  // TODO: 导航到更新详情页面
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('导航到更新详情页面')),
-                  );
+                  final current = ref.read(updateSettingsProvider).autoCheck;
+                  ref.read(updateSettingsProvider.notifier).setAutoCheck(!current);
                 },
               ),
               
@@ -195,5 +225,30 @@ class _AboutScreenState extends ConsumerState<AboutScreen> {
         onTap();
       },
     );
+  }
+
+  String _getUpdateDescription() {
+    final settings = ref.watch(updateSettingsProvider);
+    final checkState = ref.watch(updateCheckProvider);
+    
+    if (checkState.isChecking) {
+      return '正在检查...';
+    }
+    if (checkState.updateInfo != null) {
+      return '发现新版本 v${checkState.updateInfo!.version}';
+    }
+    if (settings.lastCheckTime != null) {
+      final diff = DateTime.now().difference(settings.lastCheckTime!);
+      if (diff.inMinutes < 1) {
+        return '刚刚检查过';
+      } else if (diff.inHours < 1) {
+        return '${diff.inMinutes} 分钟前检查';
+      } else if (diff.inDays < 1) {
+        return '${diff.inHours} 小时前检查';
+      } else {
+        return '${diff.inDays} 天前检查';
+      }
+    }
+    return '点击检查更新';
   }
 } 
