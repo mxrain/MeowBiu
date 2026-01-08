@@ -57,7 +57,7 @@ dependencies:
   
   # 文件处理
   # file_picker: ^7.0.0  # 移除不兼容的库
-  file_selector: ^1.0.3  # 使用Flutter官方推荐的文件选择库
+  file_selector: ^1.1.0  # 使用Flutter官方推荐的文件选择库
   
   # 关于页面所需依赖
   url_launcher: ^6.2.4
