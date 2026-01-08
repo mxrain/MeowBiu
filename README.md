@@ -1,7 +1,7 @@
 # 喵王语录 (MeowBiu)
 
 <p align="center">
-  <img src="assets/images/logo.png" alt="喵王语录" width="120">
+  🐱
 </p>
 
 <p align="center">

@@ -121,4 +121,3 @@ flutter:
   # 添加资源文件夹
   assets:
     - assets/sounds/
-    - assets/images/
