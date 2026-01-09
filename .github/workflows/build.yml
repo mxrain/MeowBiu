@@ -95,11 +95,11 @@ jobs:
         run: |
           @"
           [Setup]
-          AppName=喵王语录
+          AppName=MeowBiu
           AppVersion=1.0.0
           AppPublisher=MeowBiu
-          DefaultDirName={autopf}\MiaowangYulu
-          DefaultGroupName=喵王语录
+          DefaultDirName={autopf}\MeowBiu
+          DefaultGroupName=MeowBiu
           OutputDir=.
           OutputBaseFilename=miaowang-windows-setup
           Compression=lzma
@@ -109,22 +109,21 @@ jobs:
           ArchitecturesInstallIn64BitMode=x64compatible
           
           [Languages]
-          Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
           Name: "english"; MessagesFile: "compiler:Default.isl"
           
           [Tasks]
-          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+          Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
           
           [Files]
           Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
           
           [Icons]
-          Name: "{group}\喵王语录"; Filename: "{app}\miaowang.exe"
-          Name: "{group}\卸载喵王语录"; Filename: "{uninstallexe}"
-          Name: "{autodesktop}\喵王语录"; Filename: "{app}\miaowang.exe"; Tasks: desktopicon
+          Name: "{group}\MeowBiu"; Filename: "{app}\miaowang.exe"
+          Name: "{group}\Uninstall MeowBiu"; Filename: "{uninstallexe}"
+          Name: "{autodesktop}\MeowBiu"; Filename: "{app}\miaowang.exe"; Tasks: desktopicon
           
           [Run]
-          Filename: "{app}\miaowang.exe"; Description: "{cm:LaunchProgram,喵王语录}"; Flags: nowait postinstall skipifsilent
+          Filename: "{app}\miaowang.exe"; Description: "Launch MeowBiu"; Flags: nowait postinstall skipifsilent
           "@ | Out-File -FilePath setup.iss -Encoding UTF8
       
       - name: Build installer
