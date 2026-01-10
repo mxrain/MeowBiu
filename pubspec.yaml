@@ -40,7 +40,7 @@ dependencies:
   
   # 音频处理
   audioplayers: ^5.2.0
-  just_audio: ^0.10.0
+  just_audio: ^0.10.5
   
   # 状态管理
   flutter_riverpod: ^2.4.0
